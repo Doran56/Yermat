@@ -1,0 +1,35 @@
+export const Typography = {
+  fontFamily: {
+    display: 'BebasNeue_400Regular',
+    body: 'Inter_400Regular',
+    bodyMedium: 'Inter_500Medium',
+    bodySemibold: 'Inter_600SemiBold',
+    bodyBold: 'Inter_700Bold',
+    bodyBlack: 'Inter_900Black',
+  },
+  size: {
+    xs: 10,
+    sm: 12,
+    md: 14,
+    lg: 16,
+    xl: 18,
+    '2xl': 20,
+    '3xl': 24,
+    '4xl': 28,
+    '5xl': 36,
+    display: 52,
+    displayLg: 72,
+  },
+  lineHeight: {
+    tight: 1.1,
+    normal: 1.4,
+    relaxed: 1.6,
+  },
+  letterSpacing: {
+    tight: -0.3,
+    normal: 0,
+    wide: 0.3,
+    wider: 0.8,
+    widest: 4,
+  },
+} as const;

@@ -1,0 +1,104 @@
+{
+  "expo": {
+    "name": "Yermat",
+    "slug": "yermat",
+    "version": "1.0.0",
+    "scheme": "yermat",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090B"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.yermat",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Yermat utilise ta caméra pour filmer tes sessions d'hydratation.",
+        "NSMicrophoneUsageDescription": "Le micro est nécessaire pour enregistrer le son de tes sessions.",
+        "NSLocationWhenInUseUsageDescription": "Yermat utilise ta position pour trouver les points d'eau autour de toi.",
+        "NSPhotoLibraryUsageDescription": "Accès à ta galerie pour choisir ou sauvegarder des vidéos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.yermat",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090B"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB1j194fDZfmSPTHr_vXGOuvosyhtZ_Jso"
+        }
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-video",
+      "expo-build-properties",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/BebasNeue-Regular.ttf",
+            "./assets/fonts/Inter-Regular.ttf",
+            "./assets/fonts/Inter-Medium.ttf",
+            "./assets/fonts/Inter-SemiBold.ttf",
+            "./assets/fonts/Inter-Bold.ttf",
+            "./assets/fonts/Inter-Black.ttf"
+          ]
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Yermat utilise ta caméra pour filmer tes sessions d'hydratation."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Yermat utilise ta position pour trouver les points d'eau autour de toi."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "mode": "production"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7978d761-390d-46da-961c-ec1887e473e2"
+      }
+    },
+    "owner": "dorangouron",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7978d761-390d-46da-961c-ec1887e473e2"
+    }
+  }
+}
