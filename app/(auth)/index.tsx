@@ -91,8 +91,8 @@ export default function EmailScreen() {
             }}
           >
             {loading
-              ? <ActivityIndicator color={Colors.black} />
-              : <Text style={{ color: Colors.black, fontSize: 16, fontWeight: '700' }}>Envoyer le code</Text>
+              ? <ActivityIndicator color={Colors.white} />
+              : <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '700' }}>Envoyer le code</Text>
             }
           </TouchableOpacity>
         </View>

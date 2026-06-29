@@ -136,7 +136,7 @@ export default function ClassementScreen() {
                     <Text style={[styles.pickerOptionText, gender === g.key && styles.pickerOptionTextActive]}>
                       {g.label}
                     </Text>
-                    {gender === g.key && <Ionicons name="checkmark" size={14} color={Colors.black} />}
+                    {gender === g.key && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -153,7 +153,7 @@ export default function ClassementScreen() {
                   <Text style={[styles.pickerOptionText, challengeTypeId === null && styles.pickerOptionTextActive]}>
                     Tous
                   </Text>
-                  {challengeTypeId === null && <Ionicons name="checkmark" size={14} color={Colors.black} />}
+                  {challengeTypeId === null && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                 </TouchableOpacity>
                 {challengeTypes?.map((c: any) => (
                   <TouchableOpacity
@@ -164,7 +164,7 @@ export default function ClassementScreen() {
                     <Text style={[styles.pickerOptionText, challengeTypeId === c.id && styles.pickerOptionTextActive]}>
                       {c.name}
                     </Text>
-                    {challengeTypeId === c.id && <Ionicons name="checkmark" size={14} color={Colors.black} />}
+                    {challengeTypeId === c.id && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -190,7 +190,7 @@ export default function ClassementScreen() {
                     <Text style={[styles.pickerOptionText, barId === null && styles.pickerOptionTextActive]}>
                       Tous les bars
                     </Text>
-                    {barId === null && <Ionicons name="checkmark" size={14} color={Colors.black} />}
+                    {barId === null && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                   </TouchableOpacity>
                   {filteredBars.map(b => (
                     <TouchableOpacity
@@ -201,7 +201,7 @@ export default function ClassementScreen() {
                       <Text style={[styles.pickerOptionText, barId === b.id && styles.pickerOptionTextActive]}>
                         {b.name}
                       </Text>
-                      {barId === b.id && <Ionicons name="checkmark" size={14} color={Colors.black} />}
+                      {barId === b.id && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 3,
   },
-  filterBadgeText: { color: Colors.black, fontSize: 9, fontWeight: '800' },
+  filterBadgeText: { color: Colors.white, fontSize: 9, fontWeight: '800' },
 
   // Filter panel
   filterPanel: {
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   pickerOptionActive: { backgroundColor: Colors.amber[500] },
   pickerOptionText: { color: Colors.text, fontSize: 14 },
-  pickerOptionTextActive: { color: Colors.black, fontWeight: '700' },
+  pickerOptionTextActive: { color: Colors.white, fontWeight: '700' },
 
   // Podium
   podium: {

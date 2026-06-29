@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   labelActive: {
-    color: Colors.black,
+    color: Colors.white,
     fontWeight: '700',
   },
   labelInactive: {

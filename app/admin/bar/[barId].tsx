@@ -157,7 +157,7 @@ export default function AdminBarEditScreen() {
                 disabled={!newTitle.trim() || manageReward.isPending}
               >
                 {manageReward.isPending
-                  ? <ActivityIndicator size="small" color={Colors.black} />
+                  ? <ActivityIndicator size="small" color={Colors.white} />
                   : <Text style={styles.confirmBtnText}>Ajouter</Text>}
               </TouchableOpacity>
             </View>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   saveBtnSuccess: { backgroundColor: Colors.emerald[500] },
-  saveBtnText: { color: Colors.black, fontWeight: '700', fontSize: 14 },
+  saveBtnText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
   rewardRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,5 +286,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.amber[500],
   },
-  confirmBtnText: { color: Colors.black, fontWeight: '700', fontSize: 13 },
+  confirmBtnText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
 });

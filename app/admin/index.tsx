@@ -172,7 +172,7 @@ export default function AdminScreen() {
                 disabled={moderate.isPending}
               >
                 {moderate.isPending
-                  ? <ActivityIndicator size="small" color={Colors.black} />
+                  ? <ActivityIndicator size="small" color={Colors.white} />
                   : <Text style={styles.confirmBtnText}>Confirmer la certification</Text>}
               </TouchableOpacity>
             </View>
@@ -207,9 +207,9 @@ export default function AdminScreen() {
         style={styles.barMgmtBtn}
         activeOpacity={0.8}
       >
-        <Ionicons name="water-outline" size={16} color={Colors.black} />
+        <Ionicons name="water-outline" size={16} color={Colors.white} />
         <Text style={styles.barMgmtText}>Gestion des points d'eau</Text>
-        <Ionicons name="chevron-forward" size={14} color={Colors.black} style={{ marginLeft: 'auto' }} />
+        <Ionicons name="chevron-forward" size={14} color={Colors.white} style={{ marginLeft: 'auto' }} />
       </TouchableOpacity>
 
       {/* Filter tabs — scrollable horizontally to fit 5 tabs */}
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.amber[500], borderRadius: 8,
     paddingVertical: 10, alignItems: 'center',
   },
-  confirmBtnText: { color: Colors.black, fontWeight: '700', fontSize: 14 },
+  confirmBtnText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
   emptyText: { color: Colors.zinc[400], fontSize: 14, textAlign: 'center' },
   barMgmtBtn: {
     flexDirection: 'row',
@@ -330,5 +330,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  barMgmtText: { color: Colors.black, fontWeight: '700', fontSize: 14 },
+  barMgmtText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
 });

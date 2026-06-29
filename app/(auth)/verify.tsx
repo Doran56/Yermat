@@ -127,8 +127,8 @@ export default function VerifyScreen() {
           }}
         >
           {loading
-            ? <ActivityIndicator color={Colors.black} />
-            : <Text style={{ color: Colors.black, fontSize: 16, fontWeight: '700' }}>Vérifier</Text>
+            ? <ActivityIndicator color={Colors.white} />
+            : <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '700' }}>Vérifier</Text>
           }
         </TouchableOpacity>
 

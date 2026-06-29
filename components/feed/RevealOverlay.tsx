@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnText: {
-    color: Colors.black,
+    color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
   },

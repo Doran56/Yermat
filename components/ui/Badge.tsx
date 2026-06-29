@@ -11,7 +11,7 @@ interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, { bg: string; text: string }> = {
   default: { bg: Colors.bgElevated2, text: Colors.text },
-  amber: { bg: Colors.brand, text: Colors.black },
+  amber: { bg: Colors.brand, text: Colors.white },
   success: { bg: Colors.emerald[500], text: Colors.white },
   muted: { bg: Colors.bgElevated2, text: Colors.textSecondary },
   danger: { bg: 'rgba(239,68,68,0.15)', text: Colors.red[500] },

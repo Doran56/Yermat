@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.amber[500], borderRadius: 12,
     paddingVertical: 14, alignItems: 'center',
   },
-  perfBtnText: { color: Colors.black, fontSize: 15, fontWeight: '700' },
+  perfBtnText: { color: Colors.white, fontSize: 15, fontWeight: '700' },
   section: { paddingHorizontal: 16, paddingBottom: 24 },
   sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '700', marginBottom: 12 },
   emptyText: { color: Colors.textSecondary, fontSize: 13 },

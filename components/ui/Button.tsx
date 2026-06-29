@@ -17,7 +17,7 @@ interface ButtonProps {
 const variants: Record<Variant, { container: ViewStyle; text: TextStyle }> = {
   primary: {
     container: { backgroundColor: Colors.brand, borderRadius: 12 },
-    text: { color: Colors.black, fontWeight: '700' },
+    text: { color: Colors.white, fontWeight: '700' },
   },
   secondary: {
     container: { backgroundColor: Colors.zinc[800], borderRadius: 12 },

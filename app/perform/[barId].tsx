@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.amber[500], borderRadius: 12,
     paddingVertical: 15, alignItems: 'center',
   },
-  primaryBtnText: { color: Colors.black, fontSize: 16, fontWeight: '700' },
+  primaryBtnText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
   priceBanner: {
     backgroundColor: Colors.bgElevated,
     borderRadius: 12,

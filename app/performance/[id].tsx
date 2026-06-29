@@ -252,5 +252,5 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: Colors.amber[500], alignItems: 'center', justifyContent: 'center',
   },
-  sendBtnText: { color: Colors.black, fontSize: 18, fontWeight: '700' },
+  sendBtnText: { color: Colors.white, fontSize: 18, fontWeight: '700' },
 });

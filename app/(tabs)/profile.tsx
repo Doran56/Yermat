@@ -602,7 +602,7 @@ const st = StyleSheet.create({
     width: 22, height: 22, alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: Colors.bg,
   },
-  levelBadgeText: { color: Colors.black, fontSize: 10, fontWeight: '800' },
+  levelBadgeText: { color: Colors.white, fontSize: 10, fontWeight: '800' },
   userInfo: { flex: 1, gap: 4 },
   username: { color: Colors.text, fontSize: 21, fontWeight: '800', letterSpacing: -0.3 },
   titleText: { fontSize: 13, fontWeight: '600' },
@@ -686,5 +686,5 @@ const st = StyleSheet.create({
   // Non connecté
   unauthText: { color: Colors.textSecondary, fontSize: 14, textAlign: 'center' },
   ctaBtn: { backgroundColor: Colors.brand, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32 },
-  ctaBtnText: { color: Colors.black, fontWeight: '700', fontSize: 15 },
+  ctaBtnText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
 });

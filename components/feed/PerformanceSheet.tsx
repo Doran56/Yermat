@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   yermatBtnActive: { backgroundColor: Colors.amber[500], borderColor: Colors.amber[500] },
   yermatBtnText: { color: Colors.text, fontWeight: '700', fontSize: 14 },
-  yermatBtnTextActive: { color: Colors.black },
+  yermatBtnTextActive: { color: Colors.white },
   commentsSection: { gap: 10, marginBottom: 16 },
   commentsTitle: { color: Colors.text, fontSize: 15, fontWeight: '700' },
   noComments: { color: Colors.textSecondary, fontSize: 13 },
@@ -190,5 +190,5 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: Colors.amber[500], alignItems: 'center', justifyContent: 'center',
   },
-  sendBtnText: { color: Colors.black, fontSize: 18, fontWeight: '700' },
+  sendBtnText: { color: Colors.white, fontSize: 18, fontWeight: '700' },
 });

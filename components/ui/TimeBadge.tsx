@@ -19,7 +19,7 @@ export function TimeBadge({ timeMs, size = 'md' }: TimeBadgeProps) {
       paddingHorizontal: px,
       paddingVertical: py,
     }}>
-      <Text style={{ color: Colors.black, fontWeight: '800', fontSize, fontVariant: ['tabular-nums'] }}>
+      <Text style={{ color: Colors.white, fontWeight: '800', fontSize, fontVariant: ['tabular-nums'] }}>
         {formatTime(timeMs)}
       </Text>
     </View>

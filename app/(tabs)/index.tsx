@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 3,
   },
-  bellBadgeText: { color: Colors.black, fontSize: 9, fontWeight: '800' },
+  bellBadgeText: { color: Colors.white, fontSize: 9, fontWeight: '800' },
   unauthScreen: {
     flex: 1,
     backgroundColor: Colors.zinc[950],
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 40,
   },
-  ctaBtnText: { color: Colors.black, fontSize: 16, fontWeight: '700' },
+  ctaBtnText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
   emptyState: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
