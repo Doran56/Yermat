@@ -18,6 +18,7 @@ import { PerformanceWithDetails } from '@/types/database';
 import { formatRelativeDate } from '@/lib/utils';
 import { usePerformanceYermats } from '@/hooks/useYermats';
 import { useAuth } from '@/hooks/useAuth';
+import { useFollows } from '@/hooks/useFollows';
 import { ReportActionSheet } from '@/components/moderation/ReportActionSheet';
 
 interface FeedCardProps {
@@ -38,6 +39,8 @@ export function FeedCard({ performance, isVisible, cardHeight, onAuthRequired, o
   const { width } = useWindowDimensions();
   const { user } = useAuth();
   const { yermats, hasYermat, toggleYermat } = usePerformanceYermats(performance.id);
+  const { userFollows, toggleUserFollow } = useFollows();
+  const isFollowing = userFollows.some((f: any) => f.following_id === performance.user_id);
   const lastTapRef = useRef(0);
   const [reportVisible, setReportVisible] = useState(false);
 
@@ -180,22 +183,39 @@ export function FeedCard({ performance, isVisible, cardHeight, onAuthRequired, o
 
       {/* Bottom info */}
       <View style={styles.info}>
-        <TouchableOpacity
-          onPress={() => onPressDetail(performance)}
-          activeOpacity={0.9}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}
-        >
-          <Avatar uri={profile?.avatar_url} name={profile?.username ?? '?'} size={38} />
-          <View>
-            <Text style={styles.username}>{profile?.username ?? 'Anonyme'}</Text>
-            {bar && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                <Ionicons name="location-outline" size={12} color={Colors.zinc[400]} />
-                <Text style={styles.barName}>{bar.name}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <TouchableOpacity
+            onPress={() => onPressDetail(performance)}
+            activeOpacity={0.9}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}
+          >
+            <Avatar uri={profile?.avatar_url} name={profile?.username ?? '?'} size={38} />
+            <View>
+              <Text style={styles.username}>{profile?.username ?? 'Anonyme'}</Text>
+              {bar && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                  <Ionicons name="location-outline" size={12} color={Colors.zinc[400]} />
+                  <Text style={styles.barName}>{bar.name}</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          {user && user.id !== performance.user_id && (
+            <TouchableOpacity
+              onPress={() => {
+                if (!user) { onAuthRequired(); return; }
+                toggleUserFollow(performance.user_id);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                {isFollowing ? 'Suivi' : '+ Suivre'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Badges row */}
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -268,5 +288,25 @@ const styles = StyleSheet.create({
     color: Colors.zinc[400],
     fontSize: 11,
     marginLeft: 4,
+  },
+  followBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  followBtnActive: {
+    borderColor: Colors.amber[500],
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  followBtnText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  followBtnTextActive: {
+    color: Colors.amber[500],
   },
 });

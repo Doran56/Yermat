@@ -200,7 +200,7 @@ export default function ProfileScreen() {
   const titleColor = getTitleColorHex(title);
   const titleEmoji = getTitleEmoji(title);
 
-  // Suivi d'hydratation : consommation par période + meilleure vitesse L/s
+  // Suivi d'hydratation : consommation par période + débit moyen L/s
   const [hydroPeriod, setHydroPeriod] = useState<HydroPeriod>('day');
   const hydro = useMemo(() => {
     const perfs = myPerfs ?? [];
@@ -219,13 +219,20 @@ export default function ProfileScreen() {
       default:      since = startOfDay;
     }
     let totalMl = 0;
-    let bestSpeed = 0;
+    let speedSum = 0;
+    let speedCount = 0;
     for (const p of perfs) {
-      if (p.volume_ml && new Date(p.created_at) >= since) totalMl += p.volume_ml;
-      const s = computeSpeed(p.volume_ml, p.time_ms);
-      if (s > bestSpeed) bestSpeed = s;
+      if (new Date(p.created_at) < since) continue;
+      // volume_ml sur la perf elle-même, sinon volume du type de défi
+      const vol = p.volume_ml ?? (p.challenge_types as any)?.volume_ml ?? 0;
+      if (vol > 0) totalMl += vol;
+      if (vol > 0 && p.time_ms > 0) {
+        speedSum += computeSpeed(vol, p.time_ms);
+        speedCount++;
+      }
     }
-    return { totalMl, bestSpeed };
+    const avgSpeed = speedCount > 0 ? speedSum / speedCount : 0;
+    return { totalMl, avgSpeed };
   }, [myPerfs, hydroPeriod]);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -379,8 +386,8 @@ export default function ProfileScreen() {
             <View style={st.hydroDivider} />
             <View style={st.hydroStat}>
               <Ionicons name="speedometer-outline" size={18} color={Colors.brand} />
-              <Text style={st.hydroValue}>{formatSpeed(hydro.bestSpeed)}</Text>
-              <Text style={st.hydroLabel}>Meilleure vitesse</Text>
+              <Text style={st.hydroValue}>{formatSpeed(hydro.avgSpeed)}</Text>
+              <Text style={st.hydroLabel}>Débit moyen</Text>
             </View>
           </View>
         </Card>

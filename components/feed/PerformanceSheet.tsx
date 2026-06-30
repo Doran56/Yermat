@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePerformanceYermats } from '@/hooks/useYermats';
 import { useComments } from '@/hooks/useComments';
+import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
 import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Badge } from '@/components/ui/Badge';
@@ -33,6 +34,8 @@ export function PerformanceSheet({ performance }: Props) {
   const [comment, setComment] = useState('');
   const { yermats, hasYermat, toggleYermat } = usePerformanceYermats(performance.id);
   const { data: comments, isLoading: commentsLoading } = useComments(performance.id);
+  const { userFollows, toggleUserFollow } = useFollows();
+  const isFollowing = userFollows.some((f: any) => f.following_id === performance.user_id);
 
   const addComment = useMutation({
     mutationFn: async (content: string) => {
@@ -79,6 +82,17 @@ export function PerformanceSheet({ performance }: Props) {
             {bar && <Text style={styles.barName}>📍 {bar.name}, {bar.city}</Text>}
           </View>
           <Text style={styles.date}>{formatRelativeDate(performance.created_at)}</Text>
+          {user && user.id !== performance.user_id && (
+            <TouchableOpacity
+              onPress={() => toggleUserFollow(performance.user_id)}
+              style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                {isFollowing ? 'Suivi' : '+ Suivre'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Badges */}
@@ -177,6 +191,15 @@ const styles = StyleSheet.create({
   },
   commentUser: { color: Colors.amber[600], fontSize: 12, fontWeight: '700' },
   commentContent: { color: Colors.text, fontSize: 13, lineHeight: 18 },
+  followBtn: {
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 16, borderWidth: 1,
+    borderColor: Colors.border, backgroundColor: Colors.bgElevated2,
+    marginLeft: 8,
+  },
+  followBtnActive: { borderColor: Colors.amber[500] },
+  followBtnText: { color: Colors.text, fontSize: 12, fontWeight: '700' },
+  followBtnTextActive: { color: Colors.amber[500] },
   inputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.border,

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePerformanceYermats } from '@/hooks/useYermats';
 import { useComments } from '@/hooks/useComments';
+import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
 import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Badge } from '@/components/ui/Badge';
@@ -69,6 +70,7 @@ export default function PerformanceDetailScreen() {
 
   const { yermats, hasYermat, toggleYermat } = usePerformanceYermats(id);
   const { data: comments, isLoading: commentsLoading } = useComments(id);
+  const { userFollows, toggleUserFollow } = useFollows();
 
   const addComment = useMutation({
     mutationFn: async (content: string) => {
@@ -103,6 +105,7 @@ export default function PerformanceDetailScreen() {
   const profile = performance.profiles;
   const bar = performance.bars;
   const challenge = performance.challenge_types;
+  const isFollowing = userFollows.some((f: any) => f.following_id === performance.user_id);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -137,13 +140,24 @@ export default function PerformanceDetailScreen() {
               </View>
               <Text style={styles.date}>{formatRelativeDate(performance.created_at)}</Text>
               {user && user.id !== performance.user_id && (
-                <TouchableOpacity
-                  onPress={() => setReportVisible(true)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={{ marginLeft: 6 }}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    onPress={() => toggleUserFollow(performance.user_id)}
+                    style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                      {isFollowing ? 'Suivi' : '+ Suivre'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setReportVisible(true)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ marginLeft: 6 }}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={20} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                </>
               )}
             </View>
 
@@ -305,6 +319,15 @@ const styles = StyleSheet.create({
     gap: 6,
     flexWrap: 'wrap',
   },
+  followBtn: {
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 14, borderWidth: 1,
+    borderColor: Colors.border, backgroundColor: Colors.bgElevated,
+    marginLeft: 6,
+  },
+  followBtnActive: { borderColor: Colors.brand },
+  followBtnText: { color: Colors.text, fontSize: 11, fontWeight: '700' },
+  followBtnTextActive: { color: Colors.brand },
   visibilityLabel: { color: Colors.textSecondary, fontSize: 12, marginRight: 2 },
   visibilityBtn: {
     flexDirection: 'row',
