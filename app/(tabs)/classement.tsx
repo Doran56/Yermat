@@ -173,10 +173,10 @@ export default function ClassementScreen() {
             {/* Bar */}
             {bars.length > 0 && (
               <View style={[styles.filterSection, styles.filterSectionBorder]}>
-                <Text style={styles.filterSectionLabel}>Bar</Text>
+                <Text style={styles.filterSectionLabel}>Point d'eau</Text>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Rechercher un bar…"
+                  placeholder="Rechercher un point d'eau…"
                   placeholderTextColor={Colors.textSecondary}
                   value={barSearch}
                   onChangeText={setBarSearch}
@@ -188,7 +188,7 @@ export default function ClassementScreen() {
                     style={[styles.pickerOption, barId === null && styles.pickerOptionActive]}
                   >
                     <Text style={[styles.pickerOptionText, barId === null && styles.pickerOptionTextActive]}>
-                      Tous les bars
+                      Tous les points d'eau
                     </Text>
                     {barId === null && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                   </TouchableOpacity>
@@ -219,7 +219,7 @@ export default function ClassementScreen() {
       ) : !displayedPerformances?.length ? (
         <View style={styles.center}>
           <Ionicons name="trophy-outline" size={48} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>Aucune performance ce mois-ci</Text>
+          <Text style={styles.emptyText}>Aucun Yermat ce mois-ci</Text>
         </View>
       ) : (
         <ScrollView

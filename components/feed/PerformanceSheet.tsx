@@ -99,7 +99,7 @@ export function PerformanceSheet({ performance }: Props) {
           activeOpacity={0.8}
         >
           <Text style={[styles.yermatBtnText, hasYermat && styles.yermatBtnTextActive]}>
-            {hasYermat ? '💧' : '💦'} Yermat · {yermats}
+            {hasYermat ? '💧' : '💦'} Goutte · {yermats}
           </Text>
         </TouchableOpacity>
 

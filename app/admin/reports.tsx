@@ -60,7 +60,7 @@ export default function AdminReportsScreen() {
         <Text style={styles.date}>{formatRelativeDate(item.created_at)}</Text>
       </View>
       <Text style={styles.meta}>
-        {item.content_type === 'performance' ? 'Performance' : 'Commentaire'} signalé(e)
+        {item.content_type === 'performance' ? 'Yermat' : 'Commentaire'} signalé(e)
       </Text>
       {!!item.details && <Text style={styles.details}>« {item.details} »</Text>}
 

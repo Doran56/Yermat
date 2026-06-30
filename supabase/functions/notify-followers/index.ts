@@ -104,8 +104,8 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 
-    const title = barName ? `Nouvelle perf au ${barName}` : 'Nouvelle performance';
-    const body = `${username} a posté une nouvelle performance !`;
+    const title = barName ? `Nouveau Yermat au ${barName}` : 'Nouveau Yermat';
+    const body = `${username} a posté un nouveau Yermat !`;
 
     const batchMessages = subscriptions.map((sub: { id: string; expo_push_token: string }) => ({
       expoPushToken: sub.expo_push_token,

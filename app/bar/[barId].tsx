@@ -184,13 +184,13 @@ export default function BarDetailScreen() {
           </View>
         )}
 
-        {/* Performances récentes */}
+        {/* Yermats récents */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Performances récentes</Text>
+          <Text style={styles.sectionTitle}>Yermats récents</Text>
           {perfsLoading ? (
             <ActivityIndicator color={Colors.amber[500]} />
           ) : !perfs?.length ? (
-            <Text style={styles.emptyText}>Aucune performance encore</Text>
+            <Text style={styles.emptyText}>Aucun Yermat encore</Text>
           ) : (
             <>
               {perfs.map((p: any) => (

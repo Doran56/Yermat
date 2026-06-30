@@ -20,13 +20,13 @@ import { formatRelativeDate } from '@/lib/utils';
 
 function getNotificationText(notif: NotificationWithDetails): string {
   const actor = notif.source_user?.username ?? 'Quelqu\'un';
-  const bar = notif.source_bar?.name ?? 'ce bar';
+  const bar = notif.source_bar?.name ?? "ce point d'eau";
 
   switch (notif.type) {
-    case 'user_performance': return `${actor} a posté une nouvelle performance`;
-    case 'bar_performance':  return `Nouvelle perf au ${bar}`;
-    case 'comment':          return `${actor} a commenté ta perf`;
-    case 'yermat':           return `${actor} a yermaté ta perf 💧`;
+    case 'user_performance': return `${actor} a posté un nouveau Yermat`;
+    case 'bar_performance':  return `Nouveau Yermat au ${bar}`;
+    case 'comment':          return `${actor} a commenté ton Yermat`;
+    case 'yermat':           return `${actor} a ajouté une goutte à ton Yermat 💧`;
     case 'new_follower':     return `${actor} commence à te suivre`;
     case 'rank_beaten':      return `${actor} vient de te détrôner au ${bar} !`;
     case 'personal_best':    return 'Nouveau record perso ! 🎉';

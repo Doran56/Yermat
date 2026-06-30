@@ -1,6 +1,6 @@
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
+import { Colors, DarkTheme } from '@/constants/colors';
 
 type BackIcon = 'arrow' | 'close';
 
@@ -24,21 +24,21 @@ export function ScreenHeader({
   rightElement,
   style,
 }: ScreenHeaderProps) {
+  const scheme = useColorScheme();
+  const T = scheme === 'dark' ? DarkTheme : Colors;
+
   return (
     <View style={[styles.container, style]}>
-      {/* Back button — always reserves space for alignment */}
       <View style={styles.side}>
         {onBack && (
-          <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7}>
-            <Ionicons name={ICON_NAME[backIcon]} size={20} color={Colors.text} />
+          <TouchableOpacity onPress={onBack} style={[styles.backBtn, { backgroundColor: T.bgElevated2 }]} activeOpacity={0.7}>
+            <Ionicons name={ICON_NAME[backIcon]} size={20} color={T.text} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Title centered absolutely so it's unaffected by side element widths */}
-      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      <Text style={[styles.title, { color: T.text }]} numberOfLines={1}>{title}</Text>
 
-      {/* Right element — always reserves space for alignment */}
       <View style={[styles.side, styles.sideRight]}>
         {rightElement}
       </View>
@@ -65,13 +65,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.bgElevated2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     flex: 1,
-    color: Colors.text,
     fontSize: 17,
     fontWeight: '700',
     textAlign: 'center',

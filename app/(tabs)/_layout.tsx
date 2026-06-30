@@ -84,14 +84,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   style={{ width: 36, height: 36, resizeMode: 'contain' }}
                 />
               </View>
-              <Text style={{ color: Colors.brand, fontSize: 10, fontWeight: '700', marginTop: 2 }}>
-                PERF
-              </Text>
             </TouchableOpacity>
           );
         }
 
         const isFocused = state.routes[state.index]?.name === tab.name;
+        const route = state.routes.find((r: any) => r.name === tab.name);
         const labelColor = isFocused
           ? Colors.brand
           : isFeedActive ? Colors.zinc[400] : Colors.textSecondary;
@@ -99,7 +97,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         return (
           <TouchableOpacity
             key={tab.name}
-            onPress={() => navigation.navigate(tab.name)}
+            onPress={() => {
+              if (isFocused) {
+                navigation.emit({ type: 'tabPress', target: route?.key, canPreventDefault: true });
+              } else {
+                navigation.navigate(tab.name);
+              }
+            }}
             activeOpacity={0.7}
             style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}
           >

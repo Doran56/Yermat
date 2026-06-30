@@ -93,7 +93,7 @@ export function FeedCard({ performance, isVisible, cardHeight, onAuthRequired, o
     const who = profile?.username ?? 'quelqu\'un';
     const what = challenge ? ` - ${challenge.name}` : '';
     const time = performance.time_ms > 0 ? ` en ${(performance.time_ms / 1000).toFixed(2)}s` : '';
-    const text = `Regarde la performance de ${who}${what}${time} sur Yermat 💧`;
+    const text = `Regarde le Yermat de ${who}${what}${time} sur Yermat 💧`;
     await Share.share(
       Platform.OS === 'ios'
         ? { message: text, url: deepLink }

@@ -31,6 +31,7 @@ export interface ChallengeType {
   name: string;
   description: string | null;
   tutorial_illustration_url: string | null;
+  volume_ml: number | null;
   is_active: boolean;
   created_at: string;
 }

@@ -250,8 +250,8 @@ export default function AdminScreen() {
               <Ionicons name="checkmark-circle-outline" size={48} color={Colors.zinc[600]} />
               <Text style={styles.emptyText}>
                 {statusFilter === 'pending'
-                  ? 'Aucune performance en attente'
-                  : 'Aucune performance'}
+                  ? 'Aucun Yermat en attente'
+                  : 'Aucun Yermat'}
               </Text>
             </View>
           }

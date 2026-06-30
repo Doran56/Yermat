@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, RefreshControl, Alert,
   useWindowDimensions, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -179,12 +179,20 @@ export default function ProfileScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const thumbSize = Math.floor((screenWidth - 32 - 4) / 3);
 
+  const navigation = useNavigation();
   const { user, profile, signOut } = useAuth();
   const deleteAccount = useDeleteAccount();
   const { data: stats, refetch: refetchStats } = useProfileStats(user?.id);
   const { data: medals, refetch: refetchMedals } = useUserMedals(user?.id);
   const { data: myPerfs, isLoading: perfsLoading, refetch: refetchPerfs } = useUserPerformances(user?.id);
   const { data: isAdmin } = useIsAdmin();
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('tabPress' as any, () => {
+      Promise.all([refetchStats(), refetchMedals(), refetchPerfs()]);
+    });
+    return unsubscribe;
+  }, [navigation, refetchStats, refetchMedals, refetchPerfs]);
 
   const level = computeLevel(profile?.xp ?? 0);
   const xp = computeXpProgress(profile?.xp ?? 0);
@@ -238,7 +246,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => Alert.alert(
             'Confirmer la suppression',
-            'Toutes tes vidéos, performances et données seront supprimées définitivement. Continuer ?',
+            'Toutes tes vidéos, Yermats et données seront supprimés définitivement. Continuer ?',
             [
               { text: 'Annuler', style: 'cancel' },
               {
@@ -301,7 +309,7 @@ export default function ProfileScreen() {
             </Text>
             {/* Stats inline — pas de doublon avec la section Stats */}
             <Text style={st.quickStats}>
-              {stats?.totalPerformances ?? '–'} perfs · {stats?.totalBarsVisited ?? '–'} bars
+              {stats?.totalPerformances ?? '–'} Yermats · {stats?.totalBarsVisited ?? '–'} points d'eau
             </Text>
           </View>
         </View>
@@ -503,8 +511,8 @@ export default function ProfileScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <EmptyState
               icon="videocam-off-outline"
-              title="Aucune performance"
-              description="Lance-toi ! Ta première perf apparaîtra ici."
+              title="Aucun Yermat"
+              description="Lance-toi ! Ton premier Yermat apparaîtra ici."
               style={{ paddingVertical: 40 }}
             />
           </View>

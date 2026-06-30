@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, useColorScheme } from 'react-native';
 import { BlurView } from 'expo-blur';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -9,7 +9,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useBarsInBounds } from '@/hooks/useBars';
 import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
+import { Colors, DarkTheme } from '@/constants/colors';
 import { AddBarModal } from '@/components/map/AddBarModal';
 import { Bar } from '@/types/database';
 
@@ -54,6 +54,8 @@ function boundsFromRegion(r: Region) {
 }
 
 export default function MapScreen() {
+  const scheme = useColorScheme();
+  const T = scheme === 'dark' ? DarkTheme : Colors;
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
@@ -165,16 +167,16 @@ export default function MapScreen() {
         style={[styles.topOverlay, { paddingTop: insets.top + 8 }]}
         pointerEvents="box-none"
       >
-        <Text style={styles.carteTitle}>Carte</Text>
+        <Text style={[styles.carteTitle, { color: T.text }]}>Carte</Text>
 
         {user && (
           <TouchableOpacity
             onPress={() => setAddBarVisible(true)}
-            style={styles.addBarBtn}
+            style={[styles.addBarBtn, { backgroundColor: scheme === 'dark' ? 'rgba(24,24,27,0.88)' : 'rgba(255,255,255,0.92)', borderColor: T.border }]}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={16} color={Colors.text} />
-            <Text style={styles.addBarText}>Ajouter un point d'eau</Text>
+            <Ionicons name="add" size={16} color={T.text} />
+            <Text style={[styles.addBarText, { color: T.text }]}>Ajouter un point d'eau</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -196,7 +198,7 @@ export default function MapScreen() {
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.recenterFallback]} />
           )}
-          <Ionicons name="locate" size={20} color={Colors.text} />
+          <Ionicons name="locate" size={20} color={T.text} />
         </TouchableOpacity>
       )}
 
@@ -204,19 +206,30 @@ export default function MapScreen() {
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}
-        snapPoints={['42%']}
+        enableDynamicSizing
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: Colors.surface }}
-        handleIndicatorStyle={{ backgroundColor: Colors.border }}
+        backgroundStyle={{ backgroundColor: T.surface }}
+        handleIndicatorStyle={{ backgroundColor: T.border }}
         onClose={() => setSelectedBar(null)}
       >
         <BottomSheetView style={styles.sheetContent}>
           {selectedBar && (
             <>
-              <Text style={styles.barName}>{selectedBar.name}</Text>
-              <Text style={styles.barAddress}>{selectedBar.address}, {selectedBar.city}</Text>
+              {/* Nom + bouton Détails sur la même ligne */}
+              <View style={styles.sheetNameRow}>
+                <Text style={[styles.barName, { color: T.text, flex: 1 }]} numberOfLines={2}>{selectedBar.name}</Text>
+                <TouchableOpacity
+                  onPress={() => router.push(`/bar/${selectedBar.id}`)}
+                  activeOpacity={0.8}
+                  style={[styles.detailsBtn, { borderColor: T.border }]}
+                >
+                  <Text style={[styles.detailsBtnText, { color: T.textSecondary }]}>Détails</Text>
+                  <Ionicons name="chevron-forward" size={13} color={T.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-              {/* Récompenses */}
+              <Text style={[styles.barAddress, { color: T.textSecondary }]}>{selectedBar.address}, {selectedBar.city}</Text>
+
               {selectedBar.has_rewards && (
                 <View style={styles.sheetRewardBadge}>
                   <Text style={styles.sheetRewardText}>🏆 Ce point d'eau a des récompenses</Text>
@@ -224,19 +237,11 @@ export default function MapScreen() {
               )}
 
               <TouchableOpacity
-                onPress={() => router.push(`/bar/${selectedBar.id}`)}
-                activeOpacity={0.8}
-                style={styles.secondaryBtn}
-              >
-                <Text style={styles.secondaryBtnText}>Voir le point d'eau</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 onPress={handleNewPerf}
                 activeOpacity={0.85}
                 style={styles.perfBtn}
               >
-                <Text style={styles.perfBtnText}>Nouvelle performance</Text>
+                <Text style={styles.perfBtnText}>Nouveau Yermat</Text>
               </TouchableOpacity>
             </>
           )}
@@ -315,9 +320,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 22,
   },
-  sheetContent: { paddingHorizontal: 20, paddingTop: 8, gap: 8 },
+  sheetContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 10 },
+  sheetNameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   barName: { color: Colors.text, fontSize: 20, fontWeight: '800' },
   barAddress: { color: Colors.textSecondary, fontSize: 13 },
+  detailsBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+    borderWidth: 1, borderRadius: 16,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  detailsBtnText: { fontSize: 12, fontWeight: '600' },
   sheetPricesRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
   sheetPrice: { color: Colors.amber[500], fontSize: 13, fontWeight: '700' },
   sheetPriceSep: { color: Colors.zinc[600], fontSize: 13 },

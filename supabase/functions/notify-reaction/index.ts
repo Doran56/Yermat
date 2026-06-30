@@ -10,7 +10,7 @@ type NotifType = 'comment' | 'yermat' | 'new_follower' | 'rank_beaten' | 'person
 
 const PUSH_TITLES: Record<NotifType, string> = {
   comment:       '💬 Commentaire',
-  yermat:        '🍺 Yermat !',
+  yermat:        '💧 Goutte !',
   new_follower:  '👤 Nouvel abonné',
   rank_beaten:   '⚔️ Détrôné !',
   personal_best: '🎉 Record perso !',
@@ -112,8 +112,8 @@ serve(async (req) => {
     const actorName = actorProfile?.username ?? 'Quelqu\'un';
 
     const pushBodies: Record<NotifType, string> = {
-      comment:       `${actorName} a commenté ta perf`,
-      yermat:        `${actorName} a yermaté ta perf 🍺`,
+      comment:       `${actorName} a commenté ton Yermat`,
+      yermat:        `${actorName} a ajouté une goutte à ton Yermat 💧`,
       new_follower:  `${actorName} commence à te suivre`,
       rank_beaten:   `${actorName} vient de te détrôner !`,
       personal_best: 'Nouveau record perso ! 🎉',

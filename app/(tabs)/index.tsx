@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, Image } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useInfinitePerformances } from '@/hooks/usePerformances';
@@ -26,7 +27,7 @@ type FeedTab = 'all' | 'friends' | 'bars';
 const TABS: { key: FeedTab; label: string }[] = [
   { key: 'all', label: 'Tous' },
   { key: 'friends', label: 'Amis' },
-  { key: 'bars', label: 'Bars' },
+  { key: 'bars', label: "Points d'eau" },
 ];
 
 export default function FeedScreen() {
@@ -40,8 +41,17 @@ export default function FeedScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isTabFocused, setIsTabFocused] = useState(true);
   const sheetRef = useRef<BottomSheet>(null);
+  const listRef = useRef<FlashListRef<PerformanceWithDetails>>(null);
   const [selectedPerf, setSelectedPerf] = useState<PerformanceWithDetails | null>(null);
-  const snapPoints = useMemo(() => ['70%', '95%'], []);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const unsub = navigation.addListener('tabPress' as any, () => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    });
+    return unsub;
+  }, [navigation]);
+  const snapPoints = useMemo(() => ['52%', '92%'], []);
   const renderBackdrop = useCallback(
     (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />,
     []
@@ -116,6 +126,7 @@ export default function FeedScreen() {
       <StatusBar style="light" />
       {/* Feed */}
       <FlashList
+        ref={listRef}
         data={filtered}
         renderItem={({ item, index }) => (
           <FeedCard
@@ -123,7 +134,7 @@ export default function FeedScreen() {
             isVisible={visibleIndex === index && isTabFocused}
             cardHeight={containerHeight}
             onAuthRequired={() => setShowAuthModal(true)}
-            onPressDetail={(p) => { setSelectedPerf(p); sheetRef.current?.expand(); }}
+            onPressDetail={(p) => { setSelectedPerf(p); sheetRef.current?.snapToIndex(0); }}
           />
         )}
         pagingEnabled
@@ -186,7 +197,7 @@ export default function FeedScreen() {
         <View style={styles.emptyState}>
           <Ionicons name="water-outline" size={48} color={Colors.zinc[600]} />
           <Text style={{ color: Colors.zinc[400], marginTop: 12, textAlign: 'center' }}>
-            {activeTab === 'friends' ? 'Suis des gens pour voir leur feed' : 'Aucune performance pour le moment'}
+            {activeTab === 'friends' ? 'Suis des gens pour voir leur feed' : 'Aucun Yermat pour le moment'}
           </Text>
         </View>
       )}

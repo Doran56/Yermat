@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TextInput, FlatList, Modal,
-  StyleSheet, ActivityIndicator, TouchableOpacity, Platform,
+  StyleSheet, ActivityIndicator, TouchableOpacity, Platform, useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
+import { Colors, DarkTheme } from '@/constants/colors';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useUpsertBar } from '@/hooks/useBars';
 import { Bar } from '@/types/database';
@@ -29,6 +29,8 @@ interface AddBarModalProps {
 export function AddBarModal({ visible, onClose, onBarAdded }: AddBarModalProps) {
   const insets = useSafeAreaInsets();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheme = useColorScheme();
+  const T = scheme === 'dark' ? DarkTheme : Colors;
 
   const [query, setQuery] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -88,7 +90,7 @@ export function AddBarModal({ visible, onClose, onBarAdded }: AddBarModalProps) 
       setPredictions([]);
       onBarAdded(bar);
     } catch {
-      setError("Impossible d'ajouter ce bar");
+      setError("Impossible d'ajouter ce point d'eau");
     } finally {
       setAddingId(null);
     }
@@ -101,24 +103,24 @@ export function AddBarModal({ visible, onClose, onBarAdded }: AddBarModalProps) 
       presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
-      <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <View style={[styles.container, { backgroundColor: T.bg, paddingBottom: insets.bottom }]}>
         <View style={{ paddingTop: insets.top }}>
-          <ScreenHeader title="Ajouter un bar" onBack={handleClose} backIcon="close" />
+          <ScreenHeader title="Ajouter un point d'eau" onBack={handleClose} backIcon="close" />
         </View>
 
-        <View style={styles.searchRow}>
-          <Ionicons name="search" size={16} color={Colors.textSecondary} />
+        <View style={[styles.searchRow, { backgroundColor: T.bgElevated, borderColor: T.border }]}>
+          <Ionicons name="search" size={16} color={T.textSecondary} />
           <TextInput
             value={query}
             onChangeText={handleQueryChange}
-            placeholder="Chercher un bar, café, restaurant…"
-            placeholderTextColor={Colors.textTertiary}
-            style={styles.searchInput}
+            placeholder="Chercher un point d'eau…"
+            placeholderTextColor={T.textTertiary}
+            style={[styles.searchInput, { color: T.text }]}
             autoFocus
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
-          {isSearching && <ActivityIndicator size="small" color={Colors.brand} />}
+          {isSearching && <ActivityIndicator size="small" color={T.brand} />}
         </View>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
@@ -135,22 +137,22 @@ export function AddBarModal({ visible, onClose, onBarAdded }: AddBarModalProps) 
                 onPress={() => handleSelect(item)}
                 activeOpacity={0.75}
                 disabled={!!addingId}
-                style={[styles.row, index < predictions.length - 1 && styles.rowDivider]}
+                style={[styles.row, index < predictions.length - 1 && { borderBottomWidth: 1, borderBottomColor: T.border }]}
               >
-                <View style={styles.rowIcon}>
-                  <Ionicons name="location-outline" size={18} color={Colors.brand} />
+                <View style={[styles.rowIcon, { backgroundColor: `${T.brand}1A` }]}>
+                  <Ionicons name="location-outline" size={18} color={T.brand} />
                 </View>
                 <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
+                  <Text style={[styles.rowTitle, { color: T.text }]} numberOfLines={1}>
                     {item.structured_formatting.main_text}
                   </Text>
-                  <Text style={styles.rowSubtitle} numberOfLines={1}>
+                  <Text style={[styles.rowSubtitle, { color: T.textSecondary }]} numberOfLines={1}>
                     {item.structured_formatting.secondary_text}
                   </Text>
                 </View>
                 {isAdding
-                  ? <ActivityIndicator size="small" color={Colors.brand} />
-                  : <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+                  ? <ActivityIndicator size="small" color={T.brand} />
+                  : <Ionicons name="chevron-forward" size={16} color={T.textTertiary} />
                 }
               </TouchableOpacity>
             );
@@ -158,13 +160,13 @@ export function AddBarModal({ visible, onClose, onBarAdded }: AddBarModalProps) 
           ListEmptyComponent={
             !isSearching && query.trim() ? (
               <View style={styles.emptyState}>
-                <Ionicons name="search-outline" size={40} color={Colors.zinc[600]} />
-                <Text style={styles.emptyText}>Aucun résultat</Text>
+                <Ionicons name="search-outline" size={40} color={T.zinc[600]} />
+                <Text style={[styles.emptyText, { color: T.textTertiary }]}>Aucun résultat</Text>
               </View>
             ) : !query.trim() ? (
               <View style={styles.emptyState}>
-                <Ionicons name="water-outline" size={40} color={Colors.zinc[600]} />
-                <Text style={styles.emptyText}>Cherche un point d'eau pour l'ajouter à la carte</Text>
+                <Ionicons name="water-outline" size={40} color={T.zinc[600]} />
+                <Text style={[styles.emptyText, { color: T.textTertiary }]}>Cherche un point d'eau pour l'ajouter à la carte</Text>
               </View>
             ) : null
           }
@@ -177,7 +179,6 @@ export function AddBarModal({ visible, onClose, onBarAdded }: AddBarModalProps) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
   searchRow: {
     flexDirection: 'row',
@@ -187,15 +188,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 14,
     paddingVertical: 11,
-    backgroundColor: Colors.bgElevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    color: Colors.text,
     fontSize: 15,
     paddingVertical: 0,
   },
@@ -212,26 +210,19 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  rowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
   rowIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: `${Colors.brand}1A`,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowBody: { flex: 1 },
   rowTitle: {
-    color: Colors.text,
     fontSize: 14,
     fontWeight: '600',
   },
   rowSubtitle: {
-    color: Colors.textSecondary,
     fontSize: 12,
     marginTop: 2,
   },
@@ -242,7 +233,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: Colors.textTertiary,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,

@@ -9,7 +9,8 @@ export function useChallengeTypes() {
       const { data, error } = await supabase
         .from('challenge_types')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('volume_ml', { ascending: true });
 
       if (error) throw error;
       return data as ChallengeType[];

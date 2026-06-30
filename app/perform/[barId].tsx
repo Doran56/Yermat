@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Pressable,
+  ScrollView, ActivityIndicator, Alert, Pressable, Image,
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Brightness from 'expo-brightness';
@@ -20,14 +20,15 @@ import { Colors } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
 import { supabase } from '@/integrations/supabase/client';
 
-type Step = 'select-challenge' | 'tutorial' | 'record' | 'confirm';
+type Step = 'setup' | 'record' | 'confirm';
 type RecordingPhase = 'idle' | 'recording' | 'stopping';
 
-const VOLUME_OPTIONS = [
-  { ml: 250, label: '25 cl' },
-  { ml: 500, label: '50 cl' },
-  { ml: 750, label: '75 cl' },
-  { ml: 1000, label: '1 L' },
+const RULES = [
+  'Cadre la vidéo sur toi',
+  'Un bras dans le dos, l’autre tient le verre',
+  'Lance la vidéo',
+  'Bois ton verre',
+  'Arrête la vidéo (en gardant le bras dans le dos)',
 ];
 
 export default function PerformScreen() {
@@ -38,9 +39,8 @@ export default function PerformScreen() {
   const { data: bar } = useBar(barId);
   const { data: challengeTypes } = useChallengeTypes();
 
-  const [step, setStep] = useState<Step>('select-challenge');
+  const [step, setStep] = useState<Step>('setup');
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
-  const [volumeMl, setVolumeMl] = useState<number | null>(null);
   const [phase, setPhase] = useState<RecordingPhase>('idle');
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [recordingMs, setRecordingMs] = useState(0);
@@ -120,7 +120,7 @@ export default function PerformScreen() {
   };
 
   const handlePublish = async (visibility: 'public' | 'followers' | 'private') => {
-    if (!user || !selectedChallenge || !volumeMl) return;
+    if (!user || !selectedChallenge) return;
 
     const finalMs = recordingMsRef.current;
     const finalUri = videoUriRef.current;
@@ -153,11 +153,11 @@ export default function PerformScreen() {
         throw new Error(serverMsg ?? error.message ?? 'Erreur serveur');
       }
 
-      // Store the volume consumed for this performance (hydration tracking)
+      // Store the volume consumed for this Yermat (hydration tracking)
       if (data?.performance?.id) {
         await supabase
           .from('performances')
-          .update({ volume_ml: volumeMl })
+          .update({ volume_ml: selectedChallenge.volume_ml })
           .eq('id', data.performance.id);
       }
 
@@ -203,19 +203,56 @@ export default function PerformScreen() {
     }
   };
 
-  // ─── Step: select challenge ───────────────────────────────────────────────
+  // ─── Step: setup (volume + règles) ────────────────────────────────────────
 
-  if (step === 'select-challenge') {
+  if (step === 'setup') {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScreenHeader
-          title={bar?.name ?? 'Nouvelle performance'}
+          title={bar?.name ?? 'Nouveau Yermat'}
           onBack={() => router.back()}
           backIcon="close"
         />
 
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
-          <Text style={styles.stepTitle}>Quel défi ?</Text>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          {/* Ligne de volumes (= défis) */}
+          <Text style={styles.volumeTitle}>Quel volume ?</Text>
+          <View style={styles.volumeRow}>
+            {challengeTypes?.map((c: any) => (
+              <TouchableOpacity
+                key={c.id}
+                onPress={() => setSelectedChallenge(c)}
+                style={[styles.volumeChip, selectedChallenge?.id === c.id && styles.volumeChipActive]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.volumeChipText, selectedChallenge?.id === c.id && styles.volumeChipTextActive]}>
+                  {c.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Illustration des règles */}
+          {selectedChallenge?.tutorial_illustration_url ? (
+            <Image
+              source={{ uri: selectedChallenge.tutorial_illustration_url }}
+              style={styles.rulesIllustration}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.rulesIllustrationPlaceholder}>
+              <Text style={{ fontSize: 40 }}>💧</Text>
+              <Text style={styles.rulesIllustrationPlaceholderText}>Illustration à venir</Text>
+            </View>
+          )}
+
+          {/* Règles */}
+          <Text style={styles.stepTitle}>Les règles</Text>
+          {RULES.map((rule, i) => (
+            <View key={i} style={styles.tutorialCard}>
+              <Text style={styles.tutorialStep}>{i + 1}. {rule}</Text>
+            </View>
+          ))}
 
           {/* Message de modération */}
           <View style={{
@@ -232,91 +269,13 @@ export default function PerformScreen() {
               Reste hydraté et bois à ton rythme. Écoute ton corps : l'objectif est le plaisir, pas l'excès.
             </Text>
           </View>
-
-          {challengeTypes?.map((c: any) => (
-            <TouchableOpacity
-              key={c.id}
-              onPress={() => setSelectedChallenge(c)}
-              style={[styles.challengeCard, selectedChallenge?.id === c.id && styles.challengeCardActive]}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.challengeName}>{c.name}</Text>
-              {c.description && <Text style={styles.challengeDesc}>{c.description}</Text>}
-            </TouchableOpacity>
-          ))}
-
-          {/* Sélection du volume bu */}
-          <Text style={styles.volumeTitle}>Quel volume ?</Text>
-          <View style={styles.volumeRow}>
-            {VOLUME_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={opt.ml}
-                onPress={() => setVolumeMl(opt.ml)}
-                style={[styles.volumeChip, volumeMl === opt.ml && styles.volumeChipActive]}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.volumeChipText, volumeMl === opt.ml && styles.volumeChipTextActive]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </ScrollView>
 
         <View style={styles.footer}>
           <TouchableOpacity
-            onPress={() => selectedChallenge && volumeMl && setStep('tutorial')}
-            disabled={!selectedChallenge || !volumeMl}
-            style={[styles.primaryBtn, (!selectedChallenge || !volumeMl) && { opacity: 0.4 }]}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Continuer →</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // ─── Step: tutorial ───────────────────────────────────────────────────────
-
-  if (step === 'tutorial') {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader
-          title={selectedChallenge?.name ?? ''}
-          onBack={() => setStep('select-challenge')}
-        />
-
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-          <Text style={styles.stepTitle}>Comment ça marche ?</Text>
-
-          <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialStep}>1. 📱 Prépare ton téléphone face à toi</Text>
-          </View>
-          <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialStep}>2. 💧 Tiens ta bouteille ou ta gourde bien visible</Text>
-          </View>
-          <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialStep}>3. ▶️ Appuie sur le gros bouton pour lancer</Text>
-          </View>
-          <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialStep}>4. 🤳 L'écran s'illumine — hydrate-toi !</Text>
-          </View>
-          <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialStep}>5. ✋ Tape n'importe où pour arrêter le chrono</Text>
-          </View>
-
-          {selectedChallenge?.description && (
-            <Text style={{ color: Colors.textSecondary, fontSize: 13, lineHeight: 20 }}>
-              {selectedChallenge.description}
-            </Text>
-          )}
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            onPress={() => setStep('record')}
-            style={styles.primaryBtn}
+            onPress={() => selectedChallenge && setStep('record')}
+            disabled={!selectedChallenge}
+            style={[styles.primaryBtn, !selectedChallenge && { opacity: 0.4 }]}
             activeOpacity={0.85}
           >
             <Text style={styles.primaryBtnText}>Je suis prêt 💧</Text>
@@ -352,7 +311,7 @@ export default function PerformScreen() {
         {/* Retour — visible uniquement en phase idle */}
         {phase === 'idle' && (
           <TouchableOpacity
-            onPress={() => setStep('tutorial')}
+            onPress={() => setStep('setup')}
             style={[styles.backBtn, { position: 'absolute', top: insets.top + 12, left: 16 }]}
           >
             <Text style={styles.backText}>✕</Text>
@@ -390,7 +349,7 @@ export default function PerformScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title="Publier" onBack={() => setStep('tutorial')} />
+      <ScreenHeader title="Publier" onBack={() => setStep('setup')} />
 
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
         {videoUri && (
@@ -406,8 +365,7 @@ export default function PerformScreen() {
         <Text style={styles.stepTitle}>Résumé</Text>
 
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryRow}>💧 Défi : <Text style={styles.summaryValue}>{selectedChallenge?.name}</Text></Text>
-          <Text style={styles.summaryRow}>🥤 Volume : <Text style={styles.summaryValue}>{VOLUME_OPTIONS.find(o => o.ml === volumeMl)?.label ?? '—'}</Text></Text>
+          <Text style={styles.summaryRow}>🥤 Volume : <Text style={styles.summaryValue}>{selectedChallenge?.name ?? '—'}</Text></Text>
           <Text style={styles.summaryRow}>📍 Point d'eau : <Text style={styles.summaryValue}>{bar?.name ?? '—'}</Text></Text>
           <Text style={styles.summaryRow}>🎥 Vidéo : <Text style={styles.summaryValue}>{videoUri ? 'Enregistrée ✓' : 'Sans vidéo'}</Text></Text>
         </View>
@@ -522,6 +480,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 14,
   },
   tutorialStep: { color: Colors.text, fontSize: 14, lineHeight: 20 },
+  rulesIllustration: {
+    width: '100%', aspectRatio: 16 / 9, borderRadius: 12,
+    backgroundColor: Colors.bgElevated,
+  },
+  rulesIllustrationPlaceholder: {
+    width: '100%', aspectRatio: 16 / 9, borderRadius: 12,
+    backgroundColor: Colors.bgElevated, alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed',
+  },
+  rulesIllustrationPlaceholderText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
   // Record step — idle phase
   bigBtnWrapper: {
     position: 'absolute', bottom: 0, left: 0, right: 0,

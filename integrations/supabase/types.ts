@@ -125,6 +125,7 @@ export type Database = {
           is_active: boolean
           name: string
           tutorial_illustration_url: string | null
+          volume_ml: number | null
         }
         Insert: {
           created_at?: string
@@ -133,6 +134,7 @@ export type Database = {
           is_active?: boolean
           name: string
           tutorial_illustration_url?: string | null
+          volume_ml?: number | null
         }
         Update: {
           created_at?: string
@@ -141,6 +143,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           tutorial_illustration_url?: string | null
+          volume_ml?: number | null
         }
         Relationships: []
       }

@@ -23,6 +23,12 @@ import { Colors } from '@/constants/colors';
 import { formatRelativeDate } from '@/lib/utils';
 import * as Haptics from 'expo-haptics';
 
+const VISIBILITY_OPTIONS: { value: 'public' | 'followers' | 'private'; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { value: 'public',    label: 'Public',    icon: 'globe-outline' },
+  { value: 'followers', label: 'Abonnés',   icon: 'people-outline' },
+  { value: 'private',   label: 'Privé',     icon: 'lock-closed-outline' },
+];
+
 export default function PerformanceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -32,6 +38,21 @@ export default function PerformanceDetailScreen() {
   const qc = useQueryClient();
   const [comment, setComment] = useState('');
   const [reportVisible, setReportVisible] = useState(false);
+
+  const updateVisibility = useMutation({
+    mutationFn: async (visibility: 'public' | 'followers' | 'private') => {
+      const { error } = await supabase
+        .from('performances')
+        .update({ visibility })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['performance', id] });
+      qc.invalidateQueries({ queryKey: ['performances'] });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+  });
 
   const { data: performance, isLoading } = useQuery({
     queryKey: ['performance', id],
@@ -86,9 +107,9 @@ export default function PerformanceDetailScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader title="Performance" onBack={() => router.back()} />
+        <ScreenHeader title="Yermat" onBack={() => router.back()} />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           {/* Video player */}
           {performance.video_url ? (
             <View style={[styles.videoContainer, { height: width * (16 / 9) }]}>
@@ -126,12 +147,37 @@ export default function PerformanceDetailScreen() {
               )}
             </View>
 
-            {/* Badges */}
+            {/* Badges + visibilité sur la même ligne si owner */}
             <View style={styles.badgesRow}>
               {challenge && <Badge label={challenge.name} variant="amber" />}
               {performance.time_ms > 0 && <TimeBadge timeMs={performance.time_ms} size="md" />}
               <StatusBadge status={performance.status as any} />
             </View>
+
+            {/* Visibility picker — owner only, juste sous les badges */}
+            {user?.id === (performance as any).user_id && (
+              <View style={styles.visibilityRow}>
+                <Ionicons name="eye-outline" size={14} color={Colors.textSecondary} />
+                <Text style={styles.visibilityLabel}>Visibilité</Text>
+                {VISIBILITY_OPTIONS.map((opt) => {
+                  const active = (performance as any).visibility === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => !active && updateVisibility.mutate(opt.value)}
+                      activeOpacity={0.75}
+                      style={[styles.visibilityBtn, active && styles.visibilityBtnActive]}
+                      disabled={updateVisibility.isPending}
+                    >
+                      <Ionicons name={opt.icon} size={12} color={active ? Colors.white : Colors.textSecondary} />
+                      <Text style={[styles.visibilityBtnText, active && styles.visibilityBtnTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             {/* Yermat button */}
             <TouchableOpacity
@@ -143,7 +189,7 @@ export default function PerformanceDetailScreen() {
               style={[styles.yermatBtn, hasYermat && styles.yermatBtnActive]}
               activeOpacity={0.8}
             >
-              <Text style={styles.yermatBtnText}>{hasYermat ? '💧' : '💦'} Yermat · {yermats}</Text>
+              <Text style={styles.yermatBtnText}>{hasYermat ? '💧' : '💦'} Goutte · {yermats}</Text>
             </TouchableOpacity>
           </View>
 
@@ -253,4 +299,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.amber[500], alignItems: 'center', justifyContent: 'center',
   },
   sendBtnText: { color: Colors.white, fontSize: 18, fontWeight: '700' },
+  visibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  visibilityLabel: { color: Colors.textSecondary, fontSize: 12, marginRight: 2 },
+  visibilityBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgElevated,
+  },
+  visibilityBtnActive: {
+    backgroundColor: Colors.brand,
+    borderColor: Colors.brand,
+  },
+  visibilityBtnText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  visibilityBtnTextActive: { color: Colors.white },
 });
