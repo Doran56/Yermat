@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/integrations/supabase/client';
+import { authErrorMessage } from '@/integrations/supabase/authError';
 import { Input } from '@/components/ui/Input';
 import { Colors } from '@/constants/colors';
 import { EULA_URL, PRIVACY_URL } from '@/constants/legal';
@@ -29,7 +30,7 @@ export default function EmailScreen() {
     });
     setLoading(false);
     if (err) {
-      setError(err.message);
+      setError(authErrorMessage(err));
       return;
     }
     router.push({ pathname: '/(auth)/verify', params: { email: trimmed } });

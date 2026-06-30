@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/integrations/supabase/client';
+import { authErrorMessage } from '@/integrations/supabase/authError';
 import { Colors } from '@/constants/colors';
 
 export default function VerifyScreen() {
@@ -53,10 +54,14 @@ export default function VerifyScreen() {
 
   const resend = async () => {
     setResending(true);
-    await supabase.auth.signInWithOtp({ email: email!, options: { shouldCreateUser: true, emailRedirectTo: 'yermat://' } });
+    setError(null);
+    const { error: err } = await supabase.auth.signInWithOtp({ email: email!, options: { shouldCreateUser: true, emailRedirectTo: 'yermat://' } });
     setResending(false);
     setCode(['', '', '', '', '', '']);
-    setError(null);
+    if (err) {
+      setError(authErrorMessage(err));
+      return;
+    }
     inputRefs.current[0]?.focus();
   };
 
