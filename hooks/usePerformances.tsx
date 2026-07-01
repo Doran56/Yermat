@@ -22,7 +22,8 @@ export function useInfinitePerformances() {
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
           bars(*),
-          challenge_types(*)
+          challenge_types(*),
+          performance_comments(count)
         `)
         .in('status', ['approved', 'unverified', 'pending']);
 
@@ -35,7 +36,10 @@ export function useInfinitePerformances() {
         .range(from, to);
 
       if (error) throw error;
-      return data as unknown as PerformanceWithDetails[];
+      return (data as any[]).map(p => ({
+        ...p,
+        comments_count: (p.performance_comments?.[0]?.count ?? 0),
+      })) as PerformanceWithDetails[];
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) =>
@@ -83,14 +87,18 @@ export function usePerformances(page: number = 0) {
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
           bars(*),
-          challenge_types(*)
+          challenge_types(*),
+          performance_comments(count)
         `)
         .in('status', ['approved', 'unverified', 'pending'])
         .order('created_at', { ascending: false })
         .range(from, to);
 
       if (error) throw error;
-      return data as unknown as PerformanceWithDetails[];
+      return (data as any[]).map(p => ({
+        ...p,
+        comments_count: (p.performance_comments?.[0]?.count ?? 0),
+      })) as PerformanceWithDetails[];
     },
     staleTime: 5 * 60 * 1000, // 5 min — don't refetch if fresh
     gcTime: 30 * 60 * 1000,   // 30 min — keep in cache
@@ -149,13 +157,17 @@ export function useUserPerformances(userId: string | undefined) {
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
           bars(*),
-          challenge_types(*)
+          challenge_types(*),
+          performance_comments(count)
         `)
         .eq('user_id', userId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as unknown as PerformanceWithDetails[];
+      return (data as any[]).map(p => ({
+        ...p,
+        comments_count: (p.performance_comments?.[0]?.count ?? 0),
+      })) as PerformanceWithDetails[];
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
