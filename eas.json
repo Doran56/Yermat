@@ -18,6 +18,9 @@
       "environment": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "distribution": "store"
       }
     },
     "production": {
