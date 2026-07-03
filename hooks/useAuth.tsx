@@ -1,7 +1,13 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { AppState } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
+
+// Throttle for profiles.last_active_at writes — used by the winback/weekend
+// re-engagement push campaigns (see supabase/functions/notify-engagement) to
+// tell dormant users apart from active ones.
+const LAST_ACTIVE_THROTTLE_MS = 30 * 60 * 1000;
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +26,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastActiveUpdateRef = useRef(0);
+  const userIdRef = useRef<string | null>(null);
+
+  const bumpLastActive = (userId: string) => {
+    const now = Date.now();
+    if (now - lastActiveUpdateRef.current < LAST_ACTIVE_THROTTLE_MS) return;
+    lastActiveUpdateRef.current = now;
+    (supabase.from('profiles') as any).update({ last_active_at: new Date().toISOString() }).eq('user_id', userId);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -29,7 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
+        userIdRef.current = session?.user?.id ?? null;
         if (session?.user) {
+          bumpLastActive(session.user.id);
           setTimeout(() => {
             if (isMounted) fetchProfile(session.user.id);
           }, 0);
@@ -44,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!isMounted) return;
       setSession(session);
       setUser(session?.user ?? null);
+      userIdRef.current = session?.user?.id ?? null;
       if (session?.user) {
+        bumpLastActive(session.user.id);
         fetchProfile(session.user.id).finally(() => {
           if (isMounted) setLoading(false);
         });
@@ -53,9 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && userIdRef.current) bumpLastActive(userIdRef.current);
+    });
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      appStateSubscription.remove();
     };
   }, []);
 
