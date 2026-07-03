@@ -74,7 +74,8 @@ export function usePushNotifications() {
   const unsubscribe = useCallback(async () => {
     if (!user) return;
     try {
-      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
       await (supabase.from('push_subscriptions') as any)
         .delete()
         .eq('user_id', user.id)
