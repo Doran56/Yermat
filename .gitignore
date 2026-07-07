@@ -8,3 +8,6 @@ expo-env.d.ts
 # Local environment variables (Supabase keys, etc.)
 .env
 .env*.local
+
+# Google Play service account key (used by eas submit)
+google-service-account.json
