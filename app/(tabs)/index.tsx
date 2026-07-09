@@ -175,21 +175,31 @@ export default function FeedScreen() {
           ))}
         </View>
 
-        {/* Notifications bell */}
-        <TouchableOpacity
-          onPress={() => router.push('/notifications')}
-          style={styles.bellBtn}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="notifications-outline" size={22} color={Colors.zinc[100]} />
-          {unreadCount > 0 && (
-            <View style={styles.bellBadge}>
-              <Text style={styles.bellBadgeText}>
-                {unreadCount > 9 ? '9+' : String(unreadCount)}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.rightGroup}>
+          <TouchableOpacity
+            onPress={() => router.push('/search')}
+            style={styles.searchBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search-outline" size={22} color={Colors.zinc[100]} />
+          </TouchableOpacity>
+
+          {/* Notifications bell */}
+          <TouchableOpacity
+            onPress={() => router.push('/notifications')}
+            style={styles.bellBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.zinc[100]} />
+            {unreadCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {unreadCount > 9 ? '9+' : String(unreadCount)}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Empty state */}
@@ -253,6 +263,8 @@ const styles = StyleSheet.create({
   tabLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' },
   tabLabelActive: { color: Colors.white },
   tabIndicator: { height: 2, width: 20, backgroundColor: Colors.amber[500], borderRadius: 1, marginTop: 2 },
+  rightGroup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  searchBtn: { padding: 4 },
   bellBtn: { position: 'relative', padding: 4 },
   bellBadge: {
     position: 'absolute', top: 0, right: 0,
