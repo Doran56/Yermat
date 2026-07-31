@@ -82,7 +82,8 @@
         {
           "mode": "production"
         }
-      ]
+      ],
+      "react-native-compressor"
     ],
     "experiments": {
       "typedRoutes": true

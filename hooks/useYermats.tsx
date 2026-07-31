@@ -2,52 +2,53 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-export interface Yermat {
-  id: string;
-  performance_id: string;
-  user_id: string;
-  created_at: string;
-}
-
-export function useYermats(performanceId: string) {
+// Compte agrégé (pas de fetch des lignes) — évite de retélécharger tous les
+// Yermats d'une performance juste pour en afficher le nombre.
+export function useYermatCount(performanceId: string) {
   return useQuery({
-    queryKey: ['yermats', performanceId],
+    queryKey: ['yermat-count', performanceId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('performance_yermats')
-        .select('*')
+        .select('*', { count: 'exact', head: true })
         .eq('performance_id', performanceId);
-      
+
       if (error) throw error;
-      return data as Yermat[];
+      return count ?? 0;
     },
     enabled: !!performanceId,
   });
 }
 
-export function useYermatCount(performanceId: string) {
-  const { data: yermats } = useYermats(performanceId);
-  return yermats?.length ?? 0;
-}
-
+// Vérifie l'existence d'une seule ligne (pas besoin de charger la liste entière).
 export function useHasYermated(performanceId: string) {
   const { user } = useAuth();
-  const { data: yermats } = useYermats(performanceId);
-  
-  if (!user || !yermats) return false;
-  return yermats.some(y => y.user_id === user.id);
+
+  return useQuery({
+    queryKey: ['has-yermated', performanceId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('performance_yermats')
+        .select('id')
+        .eq('performance_id', performanceId)
+        .eq('user_id', user!.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: !!performanceId && !!user,
+  });
 }
 
 /** Convenience hook used in FeedCard / PerformanceDetail — combines count, hasYermat, and toggle */
 export function usePerformanceYermats(performanceId: string) {
-  const { user } = useAuth();
-  const { data: yermats = [] } = useYermats(performanceId);
+  const { data: yermats = 0 } = useYermatCount(performanceId);
+  const { data: hasYermat = false } = useHasYermated(performanceId);
   const toggle = useToggleYermat();
 
-  const hasYermat = !!user && yermats.some(y => y.user_id === user.id);
-
   return {
-    yermats: yermats.length,
+    yermats,
     hasYermat,
     toggleYermat: () => toggle.mutate({ performanceId, hasYermated: hasYermat }),
   };
@@ -80,7 +81,8 @@ export function useToggleYermat() {
       }
     },
     onSuccess: (_, { performanceId }) => {
-      queryClient.invalidateQueries({ queryKey: ['yermats', performanceId] });
+      queryClient.invalidateQueries({ queryKey: ['yermat-count', performanceId] });
+      queryClient.invalidateQueries({ queryKey: ['has-yermated', performanceId] });
     },
   });
 }

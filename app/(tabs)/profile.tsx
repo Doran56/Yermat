@@ -30,6 +30,10 @@ import { Colors } from '@/constants/colors';
 
 // ─── Helpers locaux ────────────────────────────────────────────────────────────
 
+// Grille "Mon historique" : rendue par lots pour éviter de monter toutes les
+// miniatures d'un coup sur un profil avec beaucoup de Yermats.
+const PERF_GRID_PAGE = 30;
+
 type HydroPeriod = 'day' | 'week' | 'month' | 'year';
 const HYDRO_PERIODS: { key: HydroPeriod; label: string }[] = [
   { key: 'day',   label: 'Jour' },
@@ -168,6 +172,8 @@ export default function ProfileScreen() {
     const avgSpeed = speedCount > 0 ? speedSum / speedCount : 0;
     return { totalMl, avgSpeed };
   }, [myPerfs, hydroPeriod]);
+
+  const [gridVisibleCount, setGridVisibleCount] = useState(PERF_GRID_PAGE);
 
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(async () => {
@@ -458,17 +464,28 @@ export default function ProfileScreen() {
             />
           </View>
         ) : (
-          /* Grille 3 colonnes flush (style Instagram) */
-          <View style={[st.perfGrid, { paddingHorizontal: 16 }]}>
-            {myPerfs.map((p: any) => (
-              <PerformanceThumb
-                key={p.id}
-                performance={p}
-                thumbSize={thumbSize}
-                onPress={() => router.push(`/performance/${p.id}`)}
-              />
-            ))}
-          </View>
+          /* Grille 3 colonnes flush (style Instagram), rendue par lots */
+          <>
+            <View style={[st.perfGrid, { paddingHorizontal: 16 }]}>
+              {myPerfs.slice(0, gridVisibleCount).map((p: any) => (
+                <PerformanceThumb
+                  key={p.id}
+                  performance={p}
+                  thumbSize={thumbSize}
+                  onPress={() => router.push(`/performance/${p.id}`)}
+                />
+              ))}
+            </View>
+            {myPerfs.length > gridVisibleCount && (
+              <TouchableOpacity
+                onPress={() => setGridVisibleCount(c => c + PERF_GRID_PAGE)}
+                style={st.loadMoreBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={st.loadMoreBtnText}>Voir plus</Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
 
@@ -624,6 +641,8 @@ const st = StyleSheet.create({
 
   // Historique grid
   perfGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
+  loadMoreBtn: { alignItems: 'center', paddingVertical: 14 },
+  loadMoreBtnText: { color: Colors.brand, fontWeight: '600', fontSize: 14 },
 
   // Paramètres
   logoutRow: {

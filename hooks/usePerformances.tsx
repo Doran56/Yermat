@@ -21,8 +21,8 @@ export function useInfinitePerformances() {
         .select(`
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
-          bars(*),
-          challenge_types(*),
+          bars(id, name, city),
+          challenge_types(id, name, volume_ml),
           performance_comments(count)
         `)
         .in('status', ['approved', 'unverified', 'pending']);
@@ -86,8 +86,8 @@ export function usePerformances(page: number = 0) {
         .select(`
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
-          bars(*),
-          challenge_types(*),
+          bars(id, name, city),
+          challenge_types(id, name, volume_ml),
           performance_comments(count)
         `)
         .in('status', ['approved', 'unverified', 'pending'])
@@ -132,8 +132,8 @@ export function usePerformance(id: string) {
         .select(`
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
-          bars(*),
-          challenge_types(*)
+          bars(id, name, city),
+          challenge_types(id, name, volume_ml)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -156,8 +156,8 @@ export function useUserPerformances(userId: string | undefined) {
         .select(`
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
-          bars(*),
-          challenge_types(*),
+          bars(id, name, city),
+          challenge_types(id, name, volume_ml),
           performance_comments(count)
         `)
         .eq('user_id', userId!)

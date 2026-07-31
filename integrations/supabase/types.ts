@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -92,6 +92,9 @@ export type Database = {
           lat: number
           lng: number
           name: string
+          price_demi: number | null
+          price_little_john: number | null
+          price_pinte: number | null
         }
         Insert: {
           address: string
@@ -103,6 +106,9 @@ export type Database = {
           lat: number
           lng: number
           name: string
+          price_demi?: number | null
+          price_little_john?: number | null
+          price_pinte?: number | null
         }
         Update: {
           address?: string
@@ -114,6 +120,9 @@ export type Database = {
           lat?: number
           lng?: number
           name?: string
+          price_demi?: number | null
+          price_little_john?: number | null
+          price_pinte?: number | null
         }
         Relationships: []
       }
@@ -147,69 +156,12 @@ export type Database = {
         }
         Relationships: []
       }
-      content_reports: {
-        Row: {
-          content_id: string
-          content_type: string
-          created_at: string
-          details: string | null
-          id: string
-          reason: string
-          reported_user_id: string | null
-          reporter_id: string
-          status: string
-        }
-        Insert: {
-          content_id: string
-          content_type: string
-          created_at?: string
-          details?: string | null
-          id?: string
-          reason: string
-          reported_user_id?: string | null
-          reporter_id: string
-          status?: string
-        }
-        Update: {
-          content_id?: string
-          content_type?: string
-          created_at?: string
-          details?: string | null
-          id?: string
-          reason?: string
-          reported_user_id?: string | null
-          reporter_id?: string
-          status?: string
-        }
-        Relationships: []
-      }
-      user_blocks: {
-        Row: {
-          blocked_id: string
-          blocker_id: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          blocked_id: string
-          blocker_id: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          blocked_id?: string
-          blocker_id?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: []
-      }
       monthly_medals: {
         Row: {
           bar_id: string | null
           category: string
           challenge_type_id: string | null
-          created_at: string | null
+          created_at: string
           id: string
           month: string
           rank: number
@@ -220,7 +172,7 @@ export type Database = {
           bar_id?: string | null
           category: string
           challenge_type_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           month: string
           rank: number
@@ -231,7 +183,7 @@ export type Database = {
           bar_id?: string | null
           category?: string
           challenge_type_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           month?: string
           rank?: number
@@ -244,7 +196,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          performance_id: string
+          opened_at: string | null
+          performance_id: string | null
+          pushed_at: string | null
           read: boolean
           source_bar_id: string | null
           source_user_id: string | null
@@ -254,7 +208,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          performance_id: string
+          opened_at?: string | null
+          performance_id?: string | null
+          pushed_at?: string | null
           read?: boolean
           source_bar_id?: string | null
           source_user_id?: string | null
@@ -264,7 +220,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          performance_id?: string
+          opened_at?: string | null
+          performance_id?: string | null
+          pushed_at?: string | null
           read?: boolean
           source_bar_id?: string | null
           source_user_id?: string | null
@@ -343,6 +301,7 @@ export type Database = {
           created_at: string
           id: string
           status: string
+          thumbnail_url: string | null
           time_ms: number
           user_id: string
           user_lat: number | null
@@ -362,6 +321,7 @@ export type Database = {
           created_at?: string
           id?: string
           status?: string
+          thumbnail_url?: string | null
           time_ms: number
           user_id: string
           user_lat?: number | null
@@ -381,6 +341,7 @@ export type Database = {
           created_at?: string
           id?: string
           status?: string
+          thumbnail_url?: string | null
           time_ms?: number
           user_id?: string
           user_lat?: number | null
@@ -421,8 +382,10 @@ export type Database = {
           age_verified: boolean
           avatar_url: string | null
           created_at: string
+          email: string | null
           gender: string | null
           id: string
+          last_active_at: string
           updated_at: string
           user_id: string
           username: string
@@ -432,8 +395,10 @@ export type Database = {
           age_verified?: boolean
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           gender?: string | null
           id?: string
+          last_active_at?: string
           updated_at?: string
           user_id: string
           username: string
@@ -443,8 +408,10 @@ export type Database = {
           age_verified?: boolean
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           gender?: string | null
           id?: string
+          last_active_at?: string
           updated_at?: string
           user_id?: string
           username?: string
@@ -454,29 +421,26 @@ export type Database = {
       }
       push_subscriptions: {
         Row: {
-          auth: string
           created_at: string
-          endpoint: string
+          expo_push_token: string
           id: string
-          p256dh: string
+          platform: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          auth: string
           created_at?: string
-          endpoint: string
+          expo_push_token: string
           id?: string
-          p256dh: string
+          platform: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          auth?: string
           created_at?: string
-          endpoint?: string
+          expo_push_token?: string
           id?: string
-          p256dh?: string
+          platform?: string
           updated_at?: string
           user_id?: string
         }
@@ -484,29 +448,29 @@ export type Database = {
       }
       tiktok_consents: {
         Row: {
-          created_at: string
+          created_at: string | null
           error: string | null
           id: string
-          performance_id: string
-          posted: boolean
+          performance_id: string | null
+          posted: boolean | null
           posted_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           error?: string | null
           id?: string
-          performance_id: string
-          posted?: boolean
+          performance_id?: string | null
+          posted?: boolean | null
           posted_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           error?: string | null
           id?: string
-          performance_id?: string
-          posted?: boolean
+          performance_id?: string | null
+          posted?: boolean | null
           posted_at?: string | null
           user_id?: string
         }
@@ -514,7 +478,7 @@ export type Database = {
           {
             foreignKeyName: "tiktok_consents_performance_id_fkey"
             columns: ["performance_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "performances"
             referencedColumns: ["id"]
           },
@@ -570,6 +534,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      trigger_engagement_campaign: {
+        Args: { _campaign: string }
+        Returns: undefined
       }
     }
     Enums: {

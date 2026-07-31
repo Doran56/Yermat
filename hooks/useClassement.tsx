@@ -22,8 +22,8 @@ export function useClassement(filters: ClassementFilters) {
         .select(`
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at, gender),
-          bars(*),
-          challenge_types(*)
+          bars(id, name),
+          challenge_types(id, name)
         `)
         .eq('visibility', 'public')
         .eq('status', 'approved')
