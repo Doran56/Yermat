@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { getThumbnailAsync } from 'expo-video-thumbnails';
+import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Colors } from '@/constants/colors';
 
-// Extrait le premier frame en image statique (pas de player → page légère)
+// Affiche la miniature générée à la publication (voir app/perform/[barId].tsx) :
+// évite de retélécharger la vidéo complète juste pour en extraire une image.
 
 export function PerformanceThumb({
   performance,
@@ -17,21 +16,7 @@ export function PerformanceThumb({
   thumbSize: number;
   onPress: () => void;
 }) {
-  const hasVideo = !!performance.video_url;
-  const [thumbUri, setThumbUri] = useState<string | null>(null);
-  const [thumbError, setThumbError] = useState(false);
-
-  useEffect(() => {
-    if (!hasVideo) return;
-    let cancelled = false;
-    getThumbnailAsync(performance.video_url, { time: 0 })
-      .then(({ uri }) => { if (!cancelled) setThumbUri(uri); })
-      .catch(() => { if (!cancelled) setThumbError(true); });
-    return () => { cancelled = true; };
-  }, [performance.video_url]);
-
-  const showFallback = !hasVideo || thumbError;
-  const showLoader = hasVideo && !thumbUri && !thumbError;
+  const thumbUri: string | null = performance.thumbnail_url ?? null;
 
   return (
     <TouchableOpacity
@@ -41,15 +26,11 @@ export function PerformanceThumb({
     >
       {thumbUri ? (
         <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-      ) : showLoader ? (
-        <View style={[StyleSheet.absoluteFill, styles.fallback]}>
-          <ActivityIndicator size="small" color={Colors.textTertiary} />
-        </View>
-      ) : showFallback ? (
+      ) : (
         <View style={[StyleSheet.absoluteFill, styles.fallback]}>
           <Ionicons name="water-outline" size={22} color={Colors.textSecondary} />
         </View>
-      ) : null}
+      )}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.65)']}
         style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end', padding: 5 }]}

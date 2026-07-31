@@ -73,15 +73,27 @@ export function useNotifications() {
     enabled: !!user,
   });
 
-  // Poll for new notifications every 30 seconds
+  // Realtime : invalide la requête à chaque nouvelle notification (remplace
+  // l'ancien polling toutes les 30s, actif en continu tant que le feed est ouvert).
   useEffect(() => {
     if (!user) return;
 
-    const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
-    }, 30000);
+    const topic = `realtime:notifications-${user.id}`;
+    const stale = supabase.getChannels().find(c => c.topic === topic);
+    if (stale) supabase.removeChannel(stale);
 
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel(`notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user, queryClient]);
 
   return query;

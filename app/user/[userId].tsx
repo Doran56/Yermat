@@ -63,6 +63,10 @@ function rankTextColor(rank: MedalRank): string {
   }
 }
 
+// Grille de Yermats : rendue par lots pour éviter de monter toutes les
+// miniatures d'un coup sur un profil avec beaucoup de Yermats.
+const PERF_GRID_PAGE = 30;
+
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 function SectionHeader({ icon, title, trailing }: { icon: IoniconName; title: string; trailing?: React.ReactNode }) {
@@ -114,6 +118,7 @@ export default function UserProfileScreen() {
   const isOwnProfile = !!user && user.id === userId;
   const isFollowing = userFollows.some((f: any) => f.following_id === userId);
 
+  const [gridVisibleCount, setGridVisibleCount] = useState(PERF_GRID_PAGE);
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -346,16 +351,27 @@ export default function UserProfileScreen() {
               />
             </View>
           ) : (
-            <View style={[st.perfGrid, { paddingHorizontal: 16 }]}>
-              {perfs.map((p: any) => (
-                <PerformanceThumb
-                  key={p.id}
-                  performance={p}
-                  thumbSize={thumbSize}
-                  onPress={() => router.push(`/performance/${p.id}`)}
-                />
-              ))}
-            </View>
+            <>
+              <View style={[st.perfGrid, { paddingHorizontal: 16 }]}>
+                {perfs.slice(0, gridVisibleCount).map((p: any) => (
+                  <PerformanceThumb
+                    key={p.id}
+                    performance={p}
+                    thumbSize={thumbSize}
+                    onPress={() => router.push(`/performance/${p.id}`)}
+                  />
+                ))}
+              </View>
+              {perfs.length > gridVisibleCount && (
+                <TouchableOpacity
+                  onPress={() => setGridVisibleCount(c => c + PERF_GRID_PAGE)}
+                  style={st.loadMoreBtn}
+                  activeOpacity={0.8}
+                >
+                  <Text style={st.loadMoreBtnText}>Voir plus</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -450,4 +466,6 @@ const st = StyleSheet.create({
   medalMetaValue: { color: Colors.text, fontSize: 11, fontWeight: '600' },
 
   perfGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
+  loadMoreBtn: { alignItems: 'center', paddingVertical: 14 },
+  loadMoreBtnText: { color: Colors.brand, fontWeight: '600', fontSize: 14 },
 });

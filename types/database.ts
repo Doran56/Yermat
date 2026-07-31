@@ -54,6 +54,7 @@ export interface Performance {
   time_ms: number;
   volume_ml: number | null;
   video_url: string | null;
+  thumbnail_url: string | null;
   video_status: VideoStatus;
   status: PerformanceStatus;
   visibility: PerformanceVisibility;

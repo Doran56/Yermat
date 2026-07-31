@@ -60,7 +60,7 @@ export default function PerformanceDetailScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('performances')
-        .select('*, profiles!performances_user_id_profiles_fkey(*), bars(*), challenge_types(*)')
+        .select('*, profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url), bars(id, name, city), challenge_types(id, name)')
         .eq('id', id)
         .single();
       if (error) throw error;
