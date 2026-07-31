@@ -9,6 +9,8 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
+import { getThumbnailAsync } from 'expo-video-thumbnails';
+import { Video as VideoCompressor } from 'react-native-compressor';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -163,22 +165,68 @@ export default function PerformScreen() {
 
       // Upload video if present
       if (finalUri && data?.performance?.id) {
-        const ext = finalUri.split('.').pop() ?? 'mp4';
+        // Recompresse le clip localement avant l'upload (le fichier caméra brut
+        // est bien plus lourd que nécessaire pour un feed mobile).
+        let compressedUri = finalUri;
+        try {
+          compressedUri = await VideoCompressor.compress(finalUri, {
+            compressionMethod: 'auto',
+          });
+        } catch (compressionErr) {
+          console.error('[handlePublish] Video compression error:', compressionErr);
+        }
+
+        const ext = compressedUri.split('.').pop() ?? 'mp4';
         const path = `videos/${user.id}/${data.performance.id}.${ext}`;
-        const base64 = await FileSystem.readAsStringAsync(finalUri, {
+        const base64 = await FileSystem.readAsStringAsync(compressedUri, {
           encoding: 'base64' as const,
         });
         const { error: uploadError } = await supabase.storage
           .from('videos')
-          .upload(path, decode(base64), { contentType: `video/${ext}`, upsert: true });
+          .upload(path, decode(base64), {
+            contentType: `video/${ext}`,
+            upsert: true,
+            cacheControl: '31536000',
+          });
 
         if (uploadError) {
           console.error('[handlePublish] Video upload error:', uploadError);
         } else {
           const { data: urlData } = supabase.storage.from('videos').getPublicUrl(path);
+          const updates: { video_url: string; video_status: 'uploaded'; thumbnail_url?: string } = {
+            video_url: urlData.publicUrl,
+            video_status: 'uploaded',
+          };
+
+          // Extrait la miniature depuis le fichier local (pas la vidéo distante) pour
+          // éviter de retélécharger toute la vidéo côté profil/grille.
+          try {
+            const { uri: localThumbUri } = await getThumbnailAsync(compressedUri, { time: 0 });
+            const thumbPath = `videos/${user.id}/${data.performance.id}_thumb.jpg`;
+            const thumbBase64 = await FileSystem.readAsStringAsync(localThumbUri, {
+              encoding: 'base64' as const,
+            });
+            const { error: thumbUploadError } = await supabase.storage
+              .from('videos')
+              .upload(thumbPath, decode(thumbBase64), {
+                contentType: 'image/jpeg',
+                upsert: true,
+                cacheControl: '31536000',
+              });
+
+            if (!thumbUploadError) {
+              const { data: thumbUrlData } = supabase.storage.from('videos').getPublicUrl(thumbPath);
+              updates.thumbnail_url = thumbUrlData.publicUrl;
+            } else {
+              console.error('[handlePublish] Thumbnail upload error:', thumbUploadError);
+            }
+          } catch (thumbErr) {
+            console.error('[handlePublish] Thumbnail generation error:', thumbErr);
+          }
+
           await supabase
             .from('performances')
-            .update({ video_url: urlData.publicUrl, video_status: 'uploaded' })
+            .update(updates)
             .eq('id', data.performance.id);
         }
       }
@@ -306,6 +354,7 @@ export default function PerformScreen() {
           style={StyleSheet.absoluteFill}
           facing="front"
           mode="video"
+          videoQuality="720p"
         />
 
         {/* Retour — visible uniquement en phase idle */}

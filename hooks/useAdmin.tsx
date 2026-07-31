@@ -31,8 +31,8 @@ export function useAllPerformances(statusFilter?: string) {
         .select(`
           *,
           profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
-          bars(*),
-          challenge_types(*)
+          bars(id, name),
+          challenge_types(id, name)
         `)
         .order('created_at', { ascending: false })
         .limit(100);

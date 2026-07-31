@@ -31,7 +31,7 @@ export default function BarDetailScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('performances')
-        .select('*, profiles!performances_user_id_profiles_fkey(*)')
+        .select('*, profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url)')
         .eq('bar_id', barId)
         .in('status', ['approved', 'unverified'])
         .eq('visibility', 'public')
@@ -47,7 +47,7 @@ export default function BarDetailScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('performances')
-        .select('*, profiles!performances_user_id_profiles_fkey(*)')
+        .select('*, profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url)')
         .eq('bar_id', barId)
         .eq('status', 'approved')
         .gt('time_ms', 0)
