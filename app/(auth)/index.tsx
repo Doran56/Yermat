@@ -9,6 +9,7 @@ import { authErrorMessage } from '@/integrations/supabase/authError';
 import { Input } from '@/components/ui/Input';
 import { Colors } from '@/constants/colors';
 import { EULA_URL, PRIVACY_URL } from '@/constants/legal';
+import { DEMO_REVIEWER_EMAIL } from '@/constants/demoReviewer';
 
 export default function EmailScreen() {
   const router = useRouter();
@@ -22,6 +23,15 @@ export default function EmailScreen() {
       setError('Adresse email invalide');
       return;
     }
+
+    // App Store review demo account: skip the real OTP email — a fictional
+    // address that receives no mail — the fixed code is checked server-side
+    // by the `demo-review-login` Edge Function on the verify screen.
+    if (trimmed === DEMO_REVIEWER_EMAIL) {
+      router.push({ pathname: '/(auth)/verify', params: { email: trimmed } });
+      return;
+    }
+
     setLoading(true);
     setError(null);
     const { error: err } = await supabase.auth.signInWithOtp({

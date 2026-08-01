@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/integrations/supabase/client';
 import { authErrorMessage } from '@/integrations/supabase/authError';
 import { Colors } from '@/constants/colors';
+import { DEMO_REVIEWER_EMAIL } from '@/constants/demoReviewer';
 
 export default function VerifyScreen() {
   const router = useRouter();
@@ -32,11 +33,40 @@ export default function VerifyScreen() {
     }
   };
 
+  const isDemoReviewer = email?.trim().toLowerCase() === DEMO_REVIEWER_EMAIL;
+
   const verify = async (token?: string) => {
     const otp = token ?? code.join('');
     if (otp.length !== 6) return;
     setLoading(true);
     setError(null);
+
+    if (isDemoReviewer) {
+      const { data, error: err } = await supabase.functions.invoke('demo-review-login', {
+        body: { email, code: otp },
+      });
+      if (err || !data?.access_token || !data?.refresh_token) {
+        setLoading(false);
+        setError('Code incorrect ou expiré. Réessaie.');
+        setCode(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+        return;
+      }
+      const { error: sessionErr } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      setLoading(false);
+      if (sessionErr) {
+        setError('Code incorrect ou expiré. Réessaie.');
+        setCode(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+        return;
+      }
+      router.replace('/(tabs)');
+      return;
+    }
+
     const { error: err } = await supabase.auth.verifyOtp({
       email: email!,
       token: otp,
@@ -53,6 +83,7 @@ export default function VerifyScreen() {
   };
 
   const resend = async () => {
+    if (isDemoReviewer) return;
     setResending(true);
     setError(null);
     const { error: err } = await supabase.auth.signInWithOtp({ email: email!, options: { shouldCreateUser: true, emailRedirectTo: 'yermat://' } });
@@ -84,7 +115,9 @@ export default function VerifyScreen() {
           Vérifie ta boîte mail
         </Text>
         <Text style={{ color: Colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 32 }}>
-          Code envoyé à {email}. Il expire dans 10 minutes.
+          {isDemoReviewer
+            ? `Saisis le code fourni pour ${email}.`
+            : `Code envoyé à ${email}. Il expire dans 10 minutes.`}
         </Text>
 
         {/* 6-digit OTP inputs */}
@@ -137,12 +170,14 @@ export default function VerifyScreen() {
           }
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={resend} disabled={resending} style={{ marginTop: 20, alignItems: 'center' }}>
-          {resending
-            ? <ActivityIndicator size="small" color={Colors.textSecondary} />
-            : <Text style={{ color: Colors.textSecondary, fontSize: 14 }}>Renvoyer le code</Text>
-          }
-        </TouchableOpacity>
+        {!isDemoReviewer && (
+          <TouchableOpacity onPress={resend} disabled={resending} style={{ marginTop: 20, alignItems: 'center' }}>
+            {resending
+              ? <ActivityIndicator size="small" color={Colors.textSecondary} />
+              : <Text style={{ color: Colors.textSecondary, fontSize: 14 }}>Renvoyer le code</Text>
+            }
+          </TouchableOpacity>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
