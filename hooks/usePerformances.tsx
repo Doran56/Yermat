@@ -72,57 +72,6 @@ export function useInfinitePerformances() {
   return query;
 }
 
-export function usePerformances(page: number = 0) {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['performances', page],
-    queryFn: async () => {
-      const from = page * FEED_PAGE_SIZE;
-      const to = from + FEED_PAGE_SIZE - 1;
-
-      const { data, error } = await supabase
-        .from('performances')
-        .select(`
-          *,
-          profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url, age_verified, created_at, updated_at),
-          bars(id, name, city),
-          challenge_types(id, name, volume_ml),
-          performance_comments(count)
-        `)
-        .in('status', ['approved', 'unverified', 'pending'])
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (error) throw error;
-      return (data as any[]).map(p => ({
-        ...p,
-        comments_count: (p.performance_comments?.[0]?.count ?? 0),
-      })) as PerformanceWithDetails[];
-    },
-    staleTime: 5 * 60 * 1000, // 5 min — don't refetch if fresh
-    gcTime: 30 * 60 * 1000,   // 30 min — keep in cache
-  });
-
-  // Subscribe to realtime updates — invalidate page 0 on new inserts
-  useEffect(() => {
-    const channel = supabase
-      .channel('performances-feed')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'performances' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['performances', 0] });
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
-
-  return query;
-}
-
 export function usePerformance(id: string) {
   return useQuery({
     queryKey: ['performance', id],
