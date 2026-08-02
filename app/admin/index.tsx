@@ -11,6 +11,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PerformanceThumb } from '@/components/profile/PerformanceThumb';
+import { VideoReviewModal } from '@/components/admin/VideoReviewModal';
 import { Colors } from '@/constants/colors';
 import { formatRelativeDate } from '@/lib/utils';
 import { PerformanceWithDetails } from '@/types/database';
@@ -35,11 +37,11 @@ const STATUS_CONFIG = {
 
 // Available re-moderation actions per current status
 const ACTIONS: Record<ModerateStatus, {
-  status: ModerateStatus; label: string; color: string; needsForm: boolean;
+  status: ModerateStatus; label: string; color: string;
 }> = {
-  approved:   { status: 'approved',   label: '✅ Certifier',     color: Colors.emerald[500], needsForm: true  },
-  unverified: { status: 'unverified', label: '📋 Non certifier', color: Colors.zinc[400],    needsForm: false },
-  rejected:   { status: 'rejected',   label: '❌ Censurer',      color: Colors.red[500],     needsForm: false },
+  approved:   { status: 'approved',   label: '✅ Certifier',     color: Colors.emerald[500] },
+  unverified: { status: 'unverified', label: '📋 Non certifier', color: Colors.zinc[400]    },
+  rejected:   { status: 'rejected',   label: '❌ Censurer',      color: Colors.red[500]     },
 };
 
 function actionsFor(status: string) {
@@ -51,8 +53,8 @@ export default function AdminScreen() {
   const router = useRouter();
   const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [comment, setComment] = useState('');
+  const [comments, setComments] = useState<Record<string, string>>({});
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
   const {
     data: performances,
@@ -70,14 +72,13 @@ export default function AdminScreen() {
   }, [isAdmin, checkingAdmin, router]);
 
   const handleModerate = async (perf: PerformanceWithDetails, newStatus: ModerateStatus) => {
+    const comment = comments[perf.id] ?? '';
     await moderate.mutateAsync({ performanceId: perf.id, newStatus, comment });
-    setExpandedId(null);
-    setComment('');
-  };
-
-  const toggleExpand = (id: string) => {
-    if (expandedId === id) { setExpandedId(null); setComment(''); }
-    else { setExpandedId(id); setComment(''); }
+    setComments(prev => {
+      const next = { ...prev };
+      delete next[perf.id];
+      return next;
+    });
   };
 
   if (checkingAdmin || (isAdmin === undefined && !checkingAdmin)) {
@@ -90,7 +91,6 @@ export default function AdminScreen() {
 
   const renderItem = ({ item: p }: { item: PerformanceWithDetails }) => {
     const cfg = STATUS_CONFIG[p.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
-    const isExpanded = expandedId === p.id;
     const actions = actionsFor(p.status);
     const isPending = p.status === 'pending';
 
@@ -99,35 +99,51 @@ export default function AdminScreen() {
         <View style={[styles.statusStripe, { backgroundColor: cfg.color }]} />
 
         <View style={styles.cardBody}>
-          {/* Header row */}
-          <View style={styles.userRow}>
-            <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username ?? '?'} size={36} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.username}>{p.profiles?.username ?? 'Anonyme'}</Text>
-              {p.bars && <Text style={styles.barName}>{p.bars.name}</Text>}
-            </View>
-            <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
-          </View>
-
-          {/* Info chips */}
-          <View style={styles.chipsRow}>
-            {p.challenge_types && <Badge label={p.challenge_types.name} variant="amber" />}
-            {p.time_ms > 0 && <TimeBadge timeMs={p.time_ms} size="sm" />}
+          {/* Thumbnail + header row */}
+          <View style={styles.topRow}>
             {p.video_url ? (
-              <View style={styles.chip}>
-                <Ionicons name="videocam" size={11} color={Colors.emerald[500]} />
-                <Text style={[styles.chipText, { color: Colors.emerald[500] }]}>Vidéo</Text>
+              <View style={styles.thumbWrap}>
+                <PerformanceThumb
+                  performance={p}
+                  thumbSize={72}
+                  onPress={() => setPreviewVideoUrl(p.video_url)}
+                />
               </View>
             ) : (
-              <View style={[styles.chip, { backgroundColor: Colors.zinc[800] }]}>
-                <Ionicons name="videocam-off-outline" size={11} color={Colors.zinc[600]} />
-                <Text style={[styles.chipText, { color: Colors.zinc[600] }]}>Sans vidéo</Text>
+              <View style={[styles.thumbWrap, styles.noVideoThumb]}>
+                <Ionicons name="videocam-off-outline" size={20} color={Colors.zinc[600]} />
               </View>
             )}
-            <Text style={styles.date}>{formatRelativeDate(p.created_at)}</Text>
+
+            <View style={{ flex: 1, gap: 8 }}>
+              <View style={styles.userRow}>
+                <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username ?? '?'} size={30} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.username}>{p.profiles?.username ?? 'Anonyme'}</Text>
+                  {p.bars && <Text style={styles.barName}>{p.bars.name}</Text>}
+                </View>
+                <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+              </View>
+
+              <View style={styles.chipsRow}>
+                {p.challenge_types && <Badge label={p.challenge_types.name} variant="amber" />}
+                {p.time_ms > 0 && <TimeBadge timeMs={p.time_ms} size="sm" />}
+                <Text style={styles.date}>{formatRelativeDate(p.created_at)}</Text>
+              </View>
+            </View>
           </View>
 
-          {/* Action buttons — pending: primary zone, others: re-moderation zone */}
+          {/* Optional moderation comment — always available, never blocks the action buttons below */}
+          <TextInput
+            value={comments[p.id] ?? ''}
+            onChangeText={(text) => setComments(prev => ({ ...prev, [p.id]: text }))}
+            placeholder="Commentaire (optionnel)…"
+            placeholderTextColor={Colors.zinc[600]}
+            style={styles.commentInput}
+            maxLength={200}
+          />
+
+          {/* Action buttons — one tap each, pending: primary zone, others: re-moderation zone */}
           {actions.length > 0 && (
             <View>
               {!isPending && (
@@ -137,12 +153,8 @@ export default function AdminScreen() {
                 {actions.map(action => (
                   <TouchableOpacity
                     key={action.status}
-                    onPress={() => action.needsForm ? toggleExpand(p.id) : handleModerate(p, action.status)}
-                    style={[
-                      styles.actionBtn,
-                      { borderColor: action.color },
-                      action.needsForm && isExpanded && { backgroundColor: action.color + '1A' },
-                    ]}
+                    onPress={() => handleModerate(p, action.status)}
+                    style={[styles.actionBtn, { borderColor: action.color }]}
                     activeOpacity={0.8}
                     disabled={moderate.isPending}
                   >
@@ -150,31 +162,6 @@ export default function AdminScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-          )}
-
-          {/* Inline certification form (shared for pending + re-moderation) */}
-          {isExpanded && (
-            <View style={styles.form}>
-              <TextInput
-                value={comment}
-                onChangeText={setComment}
-                placeholder="Commentaire de modération (optionnel)…"
-                placeholderTextColor={Colors.zinc[600]}
-                style={styles.formInput}
-                multiline
-                maxLength={200}
-              />
-              <TouchableOpacity
-                onPress={() => handleModerate(p, 'approved')}
-                style={styles.confirmBtn}
-                activeOpacity={0.85}
-                disabled={moderate.isPending}
-              >
-                {moderate.isPending
-                  ? <ActivityIndicator size="small" color={Colors.white} />
-                  : <Text style={styles.confirmBtnText}>Confirmer la certification</Text>}
-              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -217,7 +204,7 @@ export default function AdminScreen() {
         {FILTERS.map(f => (
           <TouchableOpacity
             key={f.key}
-            onPress={() => { setStatusFilter(f.key); setExpandedId(null); setComment(''); }}
+            onPress={() => setStatusFilter(f.key)}
             style={[styles.tab, statusFilter === f.key && styles.tabActive]}
             activeOpacity={0.7}
           >
@@ -257,6 +244,11 @@ export default function AdminScreen() {
           }
         />
       )}
+
+      <VideoReviewModal
+        videoUrl={previewVideoUrl}
+        onClose={() => setPreviewVideoUrl(null)}
+      />
     </View>
   );
 }
@@ -280,18 +272,24 @@ const styles = StyleSheet.create({
   },
   statusStripe: { width: 4 },
   cardBody: { flex: 1, padding: 12, gap: 8 },
+  topRow: { flexDirection: 'row', gap: 10 },
+  thumbWrap: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden' },
+  noVideoThumb: {
+    backgroundColor: Colors.zinc[800],
+    alignItems: 'center', justifyContent: 'center',
+  },
   userRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   username: { color: Colors.white, fontSize: 14, fontWeight: '700' },
   barName: { color: Colors.zinc[400], fontSize: 11, marginTop: 1 },
   statusText: { fontSize: 12, fontWeight: '700' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: Colors.emerald[500] + '22',
-    borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
-  },
-  chipText: { fontSize: 10, fontWeight: '600' },
   date: { color: Colors.zinc[600], fontSize: 11 },
+  commentInput: {
+    backgroundColor: Colors.zinc[800], borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 8,
+    color: Colors.white, fontSize: 13,
+    borderWidth: 1, borderColor: Colors.zinc[700],
+  },
   reModLabel: {
     color: Colors.zinc[600],
     fontSize: 10,
@@ -306,18 +304,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderWidth: 1.5,
   },
   actionBtnText: { fontSize: 12, fontWeight: '700' },
-  form: { gap: 8 },
-  formInput: {
-    backgroundColor: Colors.zinc[800], borderRadius: 8,
-    padding: 10, color: Colors.white, fontSize: 13,
-    borderWidth: 1, borderColor: Colors.zinc[700],
-    minHeight: 56,
-  },
-  confirmBtn: {
-    backgroundColor: Colors.amber[500], borderRadius: 8,
-    paddingVertical: 10, alignItems: 'center',
-  },
-  confirmBtnText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
   emptyText: { color: Colors.zinc[400], fontSize: 14, textAlign: 'center' },
   barMgmtBtn: {
     flexDirection: 'row',

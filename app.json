@@ -4,6 +4,7 @@
     "slug": "yermat",
     "version": "1.0.0",
     "scheme": "yermat",
+    "platforms": ["ios", "android"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
