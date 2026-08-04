@@ -10,7 +10,6 @@ import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
-import { Video as VideoCompressor } from 'react-native-compressor';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -169,11 +168,16 @@ export default function PerformScreen() {
         // est bien plus lourd que nécessaire pour un feed mobile).
         let compressedUri = finalUri;
         try {
+          // Import paresseux : react-native-compressor throw au chargement du module
+          // quand le natif NitroModules est absent (Expo Go, ou binaire buildé avant
+          // l'ajout de la dépendance). Un import statique rendrait l'écran impossible
+          // à ouvrir au lieu de simplement désactiver la compression.
+          const { Video: VideoCompressor } = require('react-native-compressor');
           compressedUri = await VideoCompressor.compress(finalUri, {
             compressionMethod: 'auto',
           });
         } catch (compressionErr) {
-          console.error('[handlePublish] Video compression error:', compressionErr);
+          console.warn('[handlePublish] Compression indisponible, upload du fichier brut :', compressionErr);
         }
 
         const ext = compressedUri.split('.').pop() ?? 'mp4';

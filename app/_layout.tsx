@@ -83,10 +83,8 @@ function AuthGate() {
       <Stack.Screen name="notifications" />
       <Stack.Screen name="search" />
       <Stack.Screen name="user/[userId]" />
-      <Stack.Screen name="admin/index" />
-      <Stack.Screen name="admin/reports" />
-      <Stack.Screen name="admin/bars" />
-      <Stack.Screen name="admin/bar/[barId]" />
+      <Stack.Screen name="admin" />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }

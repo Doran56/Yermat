@@ -97,7 +97,7 @@
     },
     "owner": "dorangouron",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/7978d761-390d-46da-961c-ec1887e473e2"

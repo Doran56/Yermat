@@ -179,7 +179,7 @@ export default function AdminScreen() {
 
       {/* Reports shortcut (modération UGC < 24h) */}
       <TouchableOpacity
-        onPress={() => router.push('/admin/reports' as never)}
+        onPress={() => router.push('/admin/reports')}
         style={[styles.barMgmtBtn, { backgroundColor: Colors.zinc[800], marginBottom: 0 }]}
         activeOpacity={0.8}
       >
