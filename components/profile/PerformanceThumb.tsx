@@ -1,4 +1,5 @@
-import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { TimeBadge } from '@/components/ui/TimeBadge';
@@ -25,7 +26,13 @@ export function PerformanceThumb({
       style={{ width: thumbSize, height: thumbSize, backgroundColor: Colors.bgElevated }}
     >
       {thumbUri ? (
-        <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image
+          source={{ uri: thumbUri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={performance.id}
+        />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.fallback]}>
           <Ionicons name="water-outline" size={22} color={Colors.textSecondary} />

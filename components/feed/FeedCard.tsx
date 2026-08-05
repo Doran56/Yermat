@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Share, Platform,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -24,6 +25,13 @@ import { ReportActionSheet } from '@/components/moderation/ReportActionSheet';
 interface FeedCardProps {
   performance: PerformanceWithDetails;
   isVisible: boolean;
+  /**
+   * Autorise le téléchargement de la vidéo. Découplé de `isVisible` pour
+   * précharger la carte suivante sans buffer tout ce que FlashList monte :
+   * expo-video remplit ses buffers dès qu'une source est fournie, même sans
+   * VideoView attachée, donc une source non nulle = des octets téléchargés.
+   */
+  shouldLoad: boolean;
   cardHeight: number;
   onAuthRequired: () => void;
   onPressDetail: (p: PerformanceWithDetails) => void;
@@ -35,7 +43,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   unverified: { label: 'Non certifiée', color: Colors.zinc[400] },
 };
 
-export function FeedCard({ performance, isVisible, cardHeight, onAuthRequired, onPressDetail }: FeedCardProps) {
+export function FeedCard({ performance, isVisible, shouldLoad, cardHeight, onAuthRequired, onPressDetail }: FeedCardProps) {
   const { width } = useWindowDimensions();
   const { user } = useAuth();
   const { yermats, hasYermat, toggleYermat } = usePerformanceYermats(performance.id);
@@ -52,21 +60,34 @@ export function FeedCard({ performance, isVisible, cardHeight, onAuthRequired, o
     opacity: heartOpacity.value,
   }));
 
-  const player = useVideoPlayer(
-    performance.video_url ? { uri: performance.video_url } : null,
-    (p) => {
-      p.loop = true;
-    }
-  );
+  // Source nulle tant que la carte n'est ni visible ni la suivante : useVideoPlayer
+  // recrée le player quand la source change (sa dépendance est le JSON de la source),
+  // donc passer à null libère le player et arrête le téléchargement.
+  // string | null — valeur stable entre les renders, contrairement à un objet littéral.
+  const videoUri = shouldLoad ? performance.video_url ?? null : null;
+
+  const player = useVideoPlayer(videoUri, (p) => {
+    p.loop = true;
+    // Les Yermats durent quelques secondes : inutile de tamponner 20 s d'avance
+    // (défaut Android), ce qui revient à télécharger tout le fichier.
+    p.bufferOptions = { preferredForwardBufferDuration: 3 };
+  });
+
+  // La miniature couvre la vidéo jusqu'à la première frame rendue. VideoView n'a
+  // pas de prop poster ; onFirstFrameRender est le point d'accroche prévu pour ça.
+  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
+  useEffect(() => {
+    if (!shouldLoad) setFirstFrameRendered(false);
+  }, [shouldLoad]);
 
   useEffect(() => {
     if (!player) return;
-    if (isVisible && performance.video_url) {
+    if (isVisible && videoUri) {
       player.play();
     } else {
       player.pause();
     }
-  }, [isVisible, player, performance.video_url]);
+  }, [isVisible, player, videoUri]);
 
   const handleDoubleTap = useCallback(() => {
     const now = Date.now();
@@ -118,12 +139,30 @@ export function FeedCard({ performance, isVisible, cardHeight, onAuthRequired, o
     >
       {/* Video background */}
       {performance.video_url ? (
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          nativeControls={false}
-        />
+        <>
+          {videoUri ? (
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              nativeControls={false}
+              onFirstFrameRender={() => setFirstFrameRendered(true)}
+            />
+          ) : null}
+
+          {/* Couverture : ~90 ko au lieu des 0,8 à 6,5 Mo de la vidéo pour une
+              carte que l'utilisateur balaie sans s'arrêter. */}
+          {performance.thumbnail_url && !firstFrameRendered ? (
+            <Image
+              source={{ uri: performance.thumbnail_url }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={120}
+              recyclingKey={performance.id}
+            />
+          ) : null}
+        </>
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.zinc[900], alignItems: 'center', justifyContent: 'center' }]}>
           <Ionicons name="water-outline" size={48} color={Colors.zinc[600]} />

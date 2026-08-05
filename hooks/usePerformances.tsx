@@ -25,7 +25,11 @@ export function useInfinitePerformances() {
           challenge_types(id, name, volume_ml),
           performance_comments(count)
         `)
-        .in('status', ['approved', 'unverified', 'pending']);
+        .in('status', ['approved', 'unverified', 'pending'])
+        // Filtré côté serveur : le feed n'affiche que les publiques. Le faire côté
+        // client faisait télécharger ~8 % de lignes pour les jeter, et rétrécissait
+        // les pages de 10, ce qui déclenchait des fetchNextPage supplémentaires.
+        .eq('visibility', 'public');
 
       if (blockedIds.length > 0) {
         q = q.not('user_id', 'in', `(${blockedIds.join(',')})`);

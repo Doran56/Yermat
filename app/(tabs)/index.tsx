@@ -75,8 +75,9 @@ export default function FeedScreen() {
     setRefreshing(false);
   }, [refetch]);
 
+  // Le filtre visibility='public' est appliqué côté serveur dans useInfinitePerformances.
   const allPerfs: PerformanceWithDetails[] = useMemo(
-    () => (data?.pages.flat() ?? []).filter(p => p.visibility === 'public'),
+    () => data?.pages.flat() ?? [],
     [data]
   );
 
@@ -132,6 +133,9 @@ export default function FeedScreen() {
           <FeedCard
             performance={item}
             isVisible={visibleIndex === index && isTabFocused}
+            // Visible + la suivante : la carte d'après est déjà tamponnée quand on
+            // scrolle, sans télécharger tout ce que FlashList monte autour.
+            shouldLoad={index === visibleIndex || index === visibleIndex + 1}
             cardHeight={containerHeight}
             onAuthRequired={() => setShowAuthModal(true)}
             onPressDetail={(p) => { setSelectedPerf(p); sheetRef.current?.snapToIndex(0); }}

@@ -6,10 +6,20 @@
 // dossier de n'importe quel utilisateur) — à mettre dans .env.backfill.local
 // (déjà ignoré par git via le pattern ".env*.local").
 //
+// Ne traite QUE les performances sans thumbnail_url. C'est volontaire : une
+// exécution sur celles qui en ont déjà une retéléchargerait puis recompresserait
+// des vidéos déjà compressées — de l'egress pur, et une perte de qualité par
+// double encodage.
+//
+// La vidéo n'est réencodée que si elle dépasse --compress-over (défaut 3 Mo).
+// En dessous, on se contente d'extraire la miniature : rien ne justifie de
+// réuploader un fichier déjà léger.
+//
 // Usage:
 //   node scripts/backfill_compress_videos.mjs --dry-run           # simulate, no writes
 //   node scripts/backfill_compress_videos.mjs --only=<performance-id>
 //   node scripts/backfill_compress_videos.mjs --limit=5
+//   node scripts/backfill_compress_videos.mjs --compress-over=3   # seuil en Mo
 //   node scripts/backfill_compress_videos.mjs                     # full run
 
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
@@ -68,6 +78,8 @@ const onlyArg = args.find(a => a.startsWith('--only='));
 const ONLY_ID = onlyArg ? onlyArg.split('=')[1] : null;
 const limitArg = args.find(a => a.startsWith('--limit='));
 const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : Infinity;
+const thresholdArg = args.find(a => a.startsWith('--compress-over='));
+const COMPRESS_OVER_BYTES = (thresholdArg ? parseFloat(thresholdArg.split('=')[1]) : 3) * 1024 * 1024;
 
 const BUCKET = 'videos';
 const PUBLIC_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`;
@@ -145,43 +157,62 @@ async function processOne(perf, tmpRoot, stats) {
 
   try {
     const originalSize = await downloadTo(perf.video_url, inputPath);
+    const shouldCompress = originalSize > COMPRESS_OVER_BYTES;
 
-    const originalDuration = await ffprobeDurationSeconds(inputPath);
-    await compressVideo(inputPath, outputPath);
-    const compressedDuration = await ffprobeDurationSeconds(outputPath);
+    // Source de la miniature : le fichier réencodé s'il y en a un, l'original sinon.
+    let thumbSource = inputPath;
+    let compressedBuf = null;
 
-    // Sanity check: refuse to overwrite if the re-encode looks broken
-    // (duration should match within a second).
-    if (!Number.isFinite(compressedDuration) || Math.abs(compressedDuration - originalDuration) > 1) {
-      throw new Error(
-        `duration mismatch after compression (original ${originalDuration}s, compressed ${compressedDuration}s) — refusing to upload`
-      );
+    if (shouldCompress) {
+      const originalDuration = await ffprobeDurationSeconds(inputPath);
+      await compressVideo(inputPath, outputPath);
+      const compressedDuration = await ffprobeDurationSeconds(outputPath);
+
+      // Sanity check: refuse to overwrite if the re-encode looks broken
+      // (duration should match within a second).
+      if (!Number.isFinite(compressedDuration) || Math.abs(compressedDuration - originalDuration) > 1) {
+        throw new Error(
+          `duration mismatch after compression (original ${originalDuration}s, compressed ${compressedDuration}s) — refusing to upload`
+        );
+      }
+
+      compressedBuf = readFileSync(outputPath);
+      thumbSource = outputPath;
     }
 
-    await extractThumbnail(outputPath, thumbPath);
-
-    const compressedBuf = readFileSync(outputPath);
+    await extractThumbnail(thumbSource, thumbPath);
     const thumbBuf = readFileSync(thumbPath);
 
     stats.originalBytes += originalSize;
-    stats.compressedBytes += compressedBuf.length;
+    stats.compressedBytes += compressedBuf ? compressedBuf.length : originalSize;
     stats.processed++;
+    if (!shouldCompress) stats.thumbOnly++;
 
-    console.log(
-      `[${DRY_RUN ? 'dry-run' : 'upload'}] ${perf.id}: ${fmtMB(originalSize)} -> ${fmtMB(compressedBuf.length)} ` +
-      `(-${(100 - (compressedBuf.length / originalSize) * 100).toFixed(0)}%)`
-    );
+    const verb = DRY_RUN ? 'dry-run' : 'upload';
+    if (shouldCompress) {
+      console.log(
+        `[${verb}] ${perf.id}: ${fmtMB(originalSize)} -> ${fmtMB(compressedBuf.length)} ` +
+        `(-${(100 - (compressedBuf.length / originalSize) * 100).toFixed(0)}%) + miniature ${Math.round(thumbBuf.length / 1024)} ko`
+      );
+    } else {
+      console.log(
+        `[${verb}] ${perf.id}: ${fmtMB(originalSize)} déjà léger — miniature seule ` +
+        `(${Math.round(thumbBuf.length / 1024)} ko), vidéo non touchée`
+      );
+    }
 
     if (DRY_RUN) return;
 
-    const { error: videoUploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, compressedBuf, {
-        contentType: 'video/mp4',
-        upsert: true,
-        cacheControl: '31536000',
-      });
-    if (videoUploadError) throw new Error(`video upload failed: ${videoUploadError.message}`);
+    if (compressedBuf) {
+      const { error: videoUploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, compressedBuf, {
+          contentType: 'video/mp4',
+          upsert: true,
+          cacheControl: '31536000',
+        });
+      if (videoUploadError) throw new Error(`video upload failed: ${videoUploadError.message}`);
+    }
 
     let thumbnailUrl = perf.thumbnail_url;
     if (!thumbnailUrl) {
@@ -220,6 +251,9 @@ async function main() {
     .from('performances')
     .select('id, user_id, video_url, thumbnail_url')
     .not('video_url', 'is', null)
+    // Garde-fou : sans ce filtre, une seconde exécution retéléchargerait et
+    // recompresserait tout le corpus déjà traité.
+    .is('thumbnail_url', null)
     .order('created_at', { ascending: true });
 
   if (ONLY_ID) query = query.eq('id', ONLY_ID);
@@ -232,13 +266,13 @@ async function main() {
 
   const tmpRoot = mkdtempSync(join(tmpdir(), 'yermat-backfill-'));
   const stats = {
-    processed: 0, uploaded: 0, skipped: 0, failed: 0,
+    processed: 0, uploaded: 0, skipped: 0, failed: 0, thumbOnly: 0,
     originalBytes: 0, compressedBytes: 0, failures: [],
   };
 
   try {
     // Séquentiel : simple et évite de saturer la bande passante/API pour un
-    // batch ponctuel de 83 vidéos.
+    // batch ponctuel de quelques centaines de vidéos.
     for (const perf of targets) {
       await processOne(perf, tmpRoot, stats);
     }
@@ -247,7 +281,10 @@ async function main() {
   }
 
   console.log('\n--- Summary ---');
-  console.log(`Processed: ${stats.processed}, Uploaded: ${stats.uploaded}, Skipped: ${stats.skipped}, Failed: ${stats.failed}`);
+  console.log(
+    `Processed: ${stats.processed}, Uploaded: ${stats.uploaded}, ` +
+    `Miniature seule: ${stats.thumbOnly}, Skipped: ${stats.skipped}, Failed: ${stats.failed}`
+  );
   if (stats.originalBytes > 0) {
     console.log(
       `Size: ${fmtMB(stats.originalBytes)} -> ${fmtMB(stats.compressedBytes)} ` +

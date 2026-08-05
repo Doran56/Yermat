@@ -1,4 +1,5 @@
-import { View, Text, Image } from 'react-native';
+import { View, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { Colors } from '@/constants/colors';
 import { getInitials } from '@/lib/utils';
 
@@ -12,10 +13,14 @@ export function Avatar({ uri, name = '', size = 40 }: AvatarProps) {
   const borderRadius = size / 2;
   if (uri) {
     return (
+      // expo-image plutôt que celui de React Native : cache disque persistant, donc
+      // un avatar déjà vu n'est pas retéléchargé au relancement de l'app.
       <Image
         source={{ uri }}
         style={{ width: size, height: size, borderRadius }}
-        resizeMode="cover"
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={uri}
       />
     );
   }
