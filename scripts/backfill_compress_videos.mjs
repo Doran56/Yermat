@@ -83,14 +83,28 @@ const COMPRESS_OVER_BYTES = (thresholdArg ? parseFloat(thresholdArg.split('=')[1
 
 const BUCKET = 'videos';
 const PUBLIC_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`;
+// Reconnaît l'URL publique de N'IMPORTE QUEL projet Supabase, même si celui-ci
+// n'est plus le projet courant. Le 15/05/2026, l'app est passée d'un ancien
+// projet Supabase à l'actuel ; 461 performances antérieures à cette date ont
+// gardé leur video_url pointant vers l'ancien projet, qui reste public et
+// répond — donc ces vidéos sont toujours servies (et facturées) depuis là-bas.
+// Le bucket public ne nécessite aucune auth pour le téléchargement ; seul le
+// réupload a besoin du service role du projet COURANT.
+const ANY_SUPABASE_PUBLIC_URL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
 function pathFromPublicUrl(url) {
-  if (!url || !url.startsWith(PUBLIC_PREFIX)) return null;
-  return decodeURIComponent(url.slice(PUBLIC_PREFIX.length));
+  if (!url) return null;
+  const m = url.match(ANY_SUPABASE_PUBLIC_URL);
+  if (!m || m[1] !== BUCKET) return null;
+  return decodeURIComponent(m[2]);
+}
+
+function isForeignProject(url) {
+  return !!url && !url.startsWith(PUBLIC_PREFIX);
 }
 
 async function downloadTo(url, destPath) {
@@ -155,8 +169,13 @@ async function processOne(perf, tmpRoot, stats) {
   const outputPath = join(workDir, 'out.mp4');
   const thumbPath = join(workDir, 'thumb.jpg');
 
+  const foreign = isForeignProject(perf.video_url);
+
   try {
     const originalSize = await downloadTo(perf.video_url, inputPath);
+    // La compression est décidée par la taille, jamais par la seule migration :
+    // réencoder un fichier déjà petit peut l'agrandir (constaté : +27% sur un clip
+    // de 1 Mo). "foreign" ne force le réupload que des octets, pas un réencodage.
     const shouldCompress = originalSize > COMPRESS_OVER_BYTES;
 
     // Source de la miniature : le fichier réencodé s'il y en a un, l'original sinon.
@@ -177,8 +196,19 @@ async function processOne(perf, tmpRoot, stats) {
       }
 
       compressedBuf = readFileSync(outputPath);
-      thumbSource = outputPath;
+      // Garde-fou symétrique : si le réencodage a produit un fichier plus gros,
+      // on garde l'original plutôt que d'empirer l'egress qu'on cherche à réduire.
+      if (compressedBuf.length >= originalSize) {
+        compressedBuf = null;
+        thumbSource = inputPath;
+      } else {
+        thumbSource = outputPath;
+      }
     }
+
+    // Octets à migrer vers le projet courant : le réencodé s'il existe et aide,
+    // sinon l'original tel quel (migration ne veut pas dire réencodage).
+    const migratedBuf = foreign ? (compressedBuf ?? readFileSync(inputPath)) : null;
 
     await extractThumbnail(thumbSource, thumbPath);
     const thumbBuf = readFileSync(thumbPath);
@@ -186,10 +216,18 @@ async function processOne(perf, tmpRoot, stats) {
     stats.originalBytes += originalSize;
     stats.compressedBytes += compressedBuf ? compressedBuf.length : originalSize;
     stats.processed++;
-    if (!shouldCompress) stats.thumbOnly++;
+    if (foreign) stats.migrated++;
+    else if (!compressedBuf) stats.thumbOnly++;
 
     const verb = DRY_RUN ? 'dry-run' : 'upload';
-    if (shouldCompress) {
+    if (foreign) {
+      const finalSize = migratedBuf.length;
+      console.log(
+        `[${verb}] ${perf.id}: MIGRATION depuis l'ancien projet — ${fmtMB(originalSize)}` +
+        (compressedBuf ? ` -> ${fmtMB(finalSize)} (-${(100 - (finalSize / originalSize) * 100).toFixed(0)}%)` : ' (déjà léger, octets inchangés)') +
+        ` + miniature ${Math.round(thumbBuf.length / 1024)} ko`
+      );
+    } else if (compressedBuf) {
       console.log(
         `[${verb}] ${perf.id}: ${fmtMB(originalSize)} -> ${fmtMB(compressedBuf.length)} ` +
         `(-${(100 - (compressedBuf.length / originalSize) * 100).toFixed(0)}%) + miniature ${Math.round(thumbBuf.length / 1024)} ko`
@@ -203,19 +241,31 @@ async function processOne(perf, tmpRoot, stats) {
 
     if (DRY_RUN) return;
 
-    if (compressedBuf) {
+    // Chemin de destination dans le bucket courant. Pour une migration, `path`
+    // vient de l'URL de l'ANCIEN projet — sa forme ({user_id}/{timestamp}.mp4)
+    // reste un chemin valide dans le nouveau bucket, on ne le réinvente pas.
+    const updates = {};
+    // Buffer à réuploader dans le bucket courant : le réencodé pour une compression
+    // locale, ou le buffer de migration (réencodé ou brut) pour une vidéo étrangère.
+    const uploadBuf = foreign ? migratedBuf : compressedBuf;
+
+    if (uploadBuf) {
       const { error: videoUploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(path, compressedBuf, {
+        .upload(path, uploadBuf, {
           contentType: 'video/mp4',
           upsert: true,
           cacheControl: '31536000',
         });
       if (videoUploadError) throw new Error(`video upload failed: ${videoUploadError.message}`);
+
+      if (foreign) {
+        const { data: pubVideo } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        updates.video_url = pubVideo.publicUrl;
+      }
     }
 
-    let thumbnailUrl = perf.thumbnail_url;
-    if (!thumbnailUrl) {
+    if (!perf.thumbnail_url) {
       const thumbPathInBucket = path.replace(/\.[^./]+$/, '') + '_thumb.jpg';
       const { error: thumbUploadError } = await supabase.storage
         .from(BUCKET)
@@ -226,12 +276,14 @@ async function processOne(perf, tmpRoot, stats) {
         });
       if (thumbUploadError) throw new Error(`thumbnail upload failed: ${thumbUploadError.message}`);
 
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(thumbPathInBucket);
-      thumbnailUrl = pub.publicUrl;
+      const { data: pubThumb } = supabase.storage.from(BUCKET).getPublicUrl(thumbPathInBucket);
+      updates.thumbnail_url = pubThumb.publicUrl;
+    }
 
+    if (Object.keys(updates).length > 0) {
       const { error: updateError } = await supabase
         .from('performances')
-        .update({ thumbnail_url: thumbnailUrl })
+        .update(updates)
         .eq('id', perf.id);
       if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
     }
@@ -266,7 +318,7 @@ async function main() {
 
   const tmpRoot = mkdtempSync(join(tmpdir(), 'yermat-backfill-'));
   const stats = {
-    processed: 0, uploaded: 0, skipped: 0, failed: 0, thumbOnly: 0,
+    processed: 0, uploaded: 0, skipped: 0, failed: 0, thumbOnly: 0, migrated: 0,
     originalBytes: 0, compressedBytes: 0, failures: [],
   };
 
@@ -283,7 +335,8 @@ async function main() {
   console.log('\n--- Summary ---');
   console.log(
     `Processed: ${stats.processed}, Uploaded: ${stats.uploaded}, ` +
-    `Miniature seule: ${stats.thumbOnly}, Skipped: ${stats.skipped}, Failed: ${stats.failed}`
+    `Migrées (ancien projet): ${stats.migrated}, Miniature seule: ${stats.thumbOnly}, ` +
+    `Skipped: ${stats.skipped}, Failed: ${stats.failed}`
   );
   if (stats.originalBytes > 0) {
     console.log(
