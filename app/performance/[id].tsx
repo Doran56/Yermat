@@ -10,7 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { usePerformanceYermats } from '@/hooks/useYermats';
+import { usePerformanceYermats, useYermatUsers } from '@/hooks/useYermats';
 import { useComments } from '@/hooks/useComments';
 import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
@@ -69,6 +69,7 @@ export default function PerformanceDetailScreen() {
   });
 
   const { yermats, hasYermat, toggleYermat } = usePerformanceYermats(id);
+  const { data: yermatUsers } = useYermatUsers(id);
   const { data: comments, isLoading: commentsLoading } = useComments(id);
   const { userFollows, toggleUserFollow } = useFollows();
 
@@ -164,7 +165,7 @@ export default function PerformanceDetailScreen() {
             {/* Badges + visibilité sur la même ligne si owner */}
             <View style={styles.badgesRow}>
               {challenge && <Badge label={challenge.name} variant="amber" />}
-              <StatusBadge status={performance.status as any} />
+              {performance.status === 'pending' && <StatusBadge status={performance.status as any} />}
               <TimeTag timeMs={performance.time_ms} />
             </View>
 
@@ -205,6 +206,23 @@ export default function PerformanceDetailScreen() {
             >
               <Text style={styles.yermatBtnText}>{hasYermat ? '💧' : '💦'} Goutte · {yermats}</Text>
             </TouchableOpacity>
+
+            {/* Utilisateurs ayant laissé une Goutte */}
+            {!!yermatUsers?.length && (
+              <View style={styles.yermatUsersRow}>
+                {yermatUsers.map(y => (
+                  <TouchableOpacity
+                    key={y.id}
+                    onPress={() => router.push(`/user/${y.user_id}`)}
+                    style={styles.yermatUserChip}
+                    activeOpacity={0.7}
+                  >
+                    <Avatar uri={y.profiles?.avatar_url} name={y.profiles?.username ?? '?'} size={18} />
+                    <Text style={styles.yermatUserName}>{y.profiles?.username ?? 'Anonyme'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Comments */}
@@ -287,6 +305,15 @@ const styles = StyleSheet.create({
   },
   yermatBtnActive: { backgroundColor: Colors.brand, borderColor: Colors.brand },
   yermatBtnText: { color: Colors.text, fontWeight: '700', fontSize: 15 },
+  yermatUsersRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10,
+  },
+  yermatUserChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.bgElevated, borderRadius: 14,
+    paddingVertical: 4, paddingHorizontal: 8,
+  },
+  yermatUserName: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
   commentsSection: { padding: 16, gap: 12 },
   commentsTitle: { color: Colors.text, fontSize: 16, fontWeight: '700' },
   noComments: { color: Colors.textSecondary, fontSize: 13 },

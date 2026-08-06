@@ -10,7 +10,7 @@ import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useInfinitePerformances } from '@/hooks/usePerformances';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
-import { useUnreadNotificationCount } from '@/hooks/useNotifications';
+import { useNotifications, useMarkNotificationsReadByType } from '@/hooks/useNotifications';
 import { FeedCard } from '@/components/feed/FeedCard';
 import { PerformanceSheet } from '@/components/feed/PerformanceSheet';
 import { RevealOverlay } from '@/components/feed/RevealOverlay';
@@ -64,7 +64,16 @@ export default function FeedScreen() {
     }, [])
   );
 
-  const unreadCount = useUnreadNotificationCount();
+  const { data: notifications } = useNotifications();
+  const friendsUnread = notifications?.filter(n => !n.read && n.type === 'user_performance').length ?? 0;
+  const barsUnread = notifications?.filter(n => !n.read && n.type === 'bar_performance').length ?? 0;
+  const markNotificationsReadByType = useMarkNotificationsReadByType();
+
+  const handleTabPress = (key: FeedTab) => {
+    setActiveTab(key);
+    if (key === 'friends' && friendsUnread > 0) markNotificationsReadByType.mutate('user_performance');
+    else if (key === 'bars' && barsUnread > 0) markNotificationsReadByType.mutate('bar_performance');
+  };
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } = useInfinitePerformances();
   const { userFollows, barFollows } = useFollows();
 
@@ -155,45 +164,45 @@ export default function FeedScreen() {
         onRefresh={handleRefresh}
       />
 
-      {/* Top overlay: logo left + tabs center + bell right */}
+      {/* Top overlay: tabs left + search right */}
       <View style={[styles.topOverlay, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
-        <Image source={require('../../assets/logo.png')} style={styles.headerLogo} />
-
         {/* Filter tabs */}
         <View style={[styles.tabsRow, !canBlur && styles.tabsRowFallback]}>
           {canBlur && (
             <BlurView intensity={25} tint="dark" style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
           )}
-          {TABS.map(tab => (
-            <TouchableOpacity
-              key={tab.key}
-              onPress={() => setActiveTab(tab.key)}
-              style={styles.tabBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
-                {tab.label}
-              </Text>
-              {activeTab === tab.key && <View style={styles.tabIndicator} />}
-            </TouchableOpacity>
-          ))}
+          {TABS.map(tab => {
+            const tabBadge = tab.key === 'friends' ? friendsUnread : tab.key === 'bars' ? barsUnread : 0;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => handleTabPress(tab.key)}
+                style={styles.tabBtn}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
+                    {tab.label}
+                  </Text>
+                  {tabBadge > 0 && (
+                    <View style={styles.tabBadge}>
+                      <Text style={styles.tabBadgeText}>{tabBadge > 9 ? '9+' : String(tabBadge)}</Text>
+                    </View>
+                  )}
+                </View>
+                {activeTab === tab.key && <View style={styles.tabIndicator} />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.rightGroup}>
-          {/* Notifications bell */}
           <TouchableOpacity
-            onPress={() => router.push('/notifications')}
-            style={styles.bellBtn}
+            onPress={() => router.push('/(tabs)/classement')}
+            style={styles.searchBtn}
             activeOpacity={0.8}
           >
-            <Ionicons name="notifications-outline" size={22} color={Colors.zinc[100]} />
-            {unreadCount > 0 && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>
-                  {unreadCount > 9 ? '9+' : String(unreadCount)}
-                </Text>
-              </View>
-            )}
+            <Ionicons name="search-outline" size={22} color={Colors.zinc[100]} />
           </TouchableOpacity>
         </View>
       </View>
@@ -241,11 +250,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     zIndex: 10,
   },
-  headerLogo: {
-    width: 36,
-    height: 36,
-    resizeMode: 'contain',
-  },
+  searchBtn: { padding: 4 },
   tabsRow: {
     flexDirection: 'row',
     borderRadius: 20,
@@ -259,16 +264,14 @@ const styles = StyleSheet.create({
   tabLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' },
   tabLabelActive: { color: Colors.white },
   tabIndicator: { height: 2, width: 20, backgroundColor: Colors.amber[500], borderRadius: 1, marginTop: 2 },
-  rightGroup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bellBtn: { position: 'relative', padding: 4 },
-  bellBadge: {
-    position: 'absolute', top: 0, right: 0,
-    minWidth: 16, height: 16, borderRadius: 8,
+  tabBadge: {
+    minWidth: 15, height: 15, borderRadius: 8,
     backgroundColor: Colors.amber[500],
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 3,
   },
-  bellBadgeText: { color: Colors.white, fontSize: 9, fontWeight: '800' },
+  tabBadgeText: { color: Colors.white, fontSize: 9, fontWeight: '800' },
+  rightGroup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   unauthScreen: {
     flex: 1,
     backgroundColor: Colors.zinc[950],

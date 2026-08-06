@@ -11,11 +11,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeTag } from '@/components/ui/TimeTag';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
-import { formatRelativeDate } from '@/lib/utils';
+import { formatRelativeDate, formatTime } from '@/lib/utils';
 import * as Haptics from 'expo-haptics';
 
 export default function BarDetailScreen() {
@@ -140,9 +139,10 @@ export default function BarDetailScreen() {
                   <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username ?? '?'} size={36} />
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.perfUser}>{p.profiles?.username ?? 'Anonyme'}</Text>
-                    <Text style={styles.perfDate}>{formatRelativeDate(p.created_at)}</Text>
+                    <Text style={styles.perfDate}>
+                      {p.time_ms > 0 ? `${formatTime(p.time_ms)} · ` : ''}{formatRelativeDate(p.created_at)}
+                    </Text>
                   </View>
-                  <TimeTag timeMs={p.time_ms} />
                 </TouchableOpacity>
               ))}
               <TouchableOpacity

@@ -3,11 +3,12 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { usePerformanceYermats } from '@/hooks/useYermats';
+import { usePerformanceYermats, useYermatUsers } from '@/hooks/useYermats';
 import { useComments } from '@/hooks/useComments';
 import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
@@ -29,10 +30,12 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'muted
 };
 
 export function PerformanceSheet({ performance }: Props) {
+  const router = useRouter();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [comment, setComment] = useState('');
   const { yermats, hasYermat, toggleYermat } = usePerformanceYermats(performance.id);
+  const { data: yermatUsers } = useYermatUsers(performance.id);
   const { data: comments, isLoading: commentsLoading } = useComments(performance.id);
   const { userFollows, toggleUserFollow } = useFollows();
   const isFollowing = userFollows.some((f: any) => f.following_id === performance.user_id);
@@ -98,7 +101,7 @@ export function PerformanceSheet({ performance }: Props) {
         {/* Badges */}
         <View style={styles.badgesRow}>
           {challenge && <Badge label={challenge.name} variant="amber" />}
-          <Badge label={statusCfg.label} variant={statusCfg.variant} />
+          {performance.status === 'pending' && <Badge label={statusCfg.label} variant={statusCfg.variant} />}
           <TimeTag timeMs={performance.time_ms} />
         </View>
 
@@ -116,6 +119,23 @@ export function PerformanceSheet({ performance }: Props) {
             {hasYermat ? '💧' : '💦'} Goutte · {yermats}
           </Text>
         </TouchableOpacity>
+
+        {/* Utilisateurs ayant laissé une Goutte */}
+        {!!yermatUsers?.length && (
+          <View style={styles.yermatUsersRow}>
+            {yermatUsers.map(y => (
+              <TouchableOpacity
+                key={y.id}
+                onPress={() => router.push(`/user/${y.user_id}`)}
+                style={styles.yermatUserChip}
+                activeOpacity={0.7}
+              >
+                <Avatar uri={y.profiles?.avatar_url} name={y.profiles?.username ?? '?'} size={18} />
+                <Text style={styles.yermatUserName}>{y.profiles?.username ?? 'Anonyme'}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Comments */}
         <View style={styles.commentsSection}>
@@ -181,6 +201,15 @@ const styles = StyleSheet.create({
   yermatBtnActive: { backgroundColor: Colors.amber[500], borderColor: Colors.amber[500] },
   yermatBtnText: { color: Colors.text, fontWeight: '700', fontSize: 14 },
   yermatBtnTextActive: { color: Colors.white },
+  yermatUsersRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16, marginTop: -6,
+  },
+  yermatUserChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.bgElevated2, borderRadius: 14,
+    paddingVertical: 4, paddingHorizontal: 8,
+  },
+  yermatUserName: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
   commentsSection: { gap: 10, marginBottom: 16 },
   commentsTitle: { color: Colors.text, fontSize: 15, fontWeight: '700' },
   noComments: { color: Colors.textSecondary, fontSize: 13 },

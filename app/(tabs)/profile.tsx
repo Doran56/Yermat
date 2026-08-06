@@ -15,10 +15,8 @@ import { useUserPerformances } from '@/hooks/usePerformances';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { EULA_URL, PRIVACY_URL } from '@/constants/legal';
 import {
-  computeLevel, computeXpProgress, computeTitle, getTitleEmoji,
   getMedalEmoji,
-  formatVolume,
-  type LevelTitle, type MedalRank,
+  type MedalRank,
 } from '@/lib/gamification';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
@@ -41,15 +39,6 @@ const HYDRO_PERIODS: { key: HydroPeriod; label: string }[] = [
   { key: 'month', label: 'Mois' },
   { key: 'year',  label: 'Année' },
 ];
-
-function getTitleColorHex(title: LevelTitle): string {
-  switch (title) {
-    case 'Goutte':  return Colors.textSecondary;
-    case 'Gorgée':  return Colors.accent;
-    case 'Torrent': return Colors.brand;
-    case 'Océan':   return Colors.brandDark;
-  }
-}
 
 function getMedalBorderColor(rank: MedalRank): string {
   switch (rank) {
@@ -89,23 +78,38 @@ function SectionHeader({ icon, title, trailing }: { icon: IoniconName; title: st
   );
 }
 
-function StatCard({
-  icon,
-  value,
-  label,
-  iconColor = Colors.textSecondary,
-}: {
-  icon: IoniconName;
-  value: string;
-  label: string;
-  iconColor?: string;
-}) {
+const CHART_HEIGHT = 72;
+
+function ConsumptionChart({ data }: { data: { label: string; value: number }[] }) {
+  const maxValue = Math.max(...data.map(d => d.value), 1);
   return (
-    <Card variant="outlined" style={st.statCard}>
-      <Ionicons name={icon} size={16} color={iconColor} />
-      <Text style={st.statValue}>{value}</Text>
-      <Text style={st.statLabel}>{label}</Text>
-    </Card>
+    <View>
+      <View style={st.chartBars}>
+        {data.map((d, i) => {
+          const hasValue = d.value > 0;
+          const barHeight = hasValue ? Math.max(6, (d.value / maxValue) * CHART_HEIGHT) : 2;
+          return (
+            <View key={i} style={st.chartCol}>
+              <View
+                style={[
+                  st.chartBar,
+                  {
+                    height: barHeight,
+                    backgroundColor: hasValue ? Colors.brand : Colors.border,
+                  },
+                ]}
+              />
+            </View>
+          );
+        })}
+      </View>
+      <View style={st.chartBaseline} />
+      <View style={st.chartLabelsRow}>
+        {data.map((d, i) => (
+          <Text key={i} style={st.chartLabel} numberOfLines={1}>{d.label}</Text>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -132,38 +136,59 @@ export default function ProfileScreen() {
     return unsubscribe;
   }, [navigation, refetchStats, refetchMedals, refetchPerfs]);
 
-  const level = computeLevel(profile?.xp ?? 0);
-  const xp = computeXpProgress(profile?.xp ?? 0);
-  const title = computeTitle(level);
-  const titleColor = getTitleColorHex(title);
-  const titleEmoji = getTitleEmoji(title);
-
-  // Suivi de consommation par période
+  // Suivi de consommation par période — répartie en buckets pour le graphique
   const [hydroPeriod, setHydroPeriod] = useState<HydroPeriod>('day');
   const hydro = useMemo(() => {
     const perfs = myPerfs ?? [];
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     let since: Date;
+    let bucketLabels: string[];
+    let getBucketIndex: (d: Date) => number;
+
     switch (hydroPeriod) {
       case 'week': {
         const d = new Date(startOfDay);
         d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // lundi
         since = d;
+        bucketLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+        getBucketIndex = (dt) => (dt.getDay() + 6) % 7;
         break;
       }
-      case 'month': since = new Date(now.getFullYear(), now.getMonth(), 1); break;
-      case 'year':  since = new Date(now.getFullYear(), 0, 1); break;
-      default:      since = startOfDay;
+      case 'month': {
+        since = new Date(now.getFullYear(), now.getMonth(), 1);
+        bucketLabels = ['S1', 'S2', 'S3', 'S4', 'S5'];
+        getBucketIndex = (dt) => Math.min(4, Math.floor((dt.getDate() - 1) / 7));
+        break;
+      }
+      case 'year': {
+        since = new Date(now.getFullYear(), 0, 1);
+        bucketLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+        getBucketIndex = (dt) => dt.getMonth();
+        break;
+      }
+      default: {
+        since = startOfDay;
+        bucketLabels = ['0h', '4h', '8h', '12h', '16h', '20h'];
+        getBucketIndex = (dt) => Math.min(5, Math.floor(dt.getHours() / 4));
+        break;
+      }
     }
+
+    const buckets = bucketLabels.map(label => ({ label, value: 0 }));
     let totalMl = 0;
     for (const p of perfs) {
-      if (new Date(p.created_at) < since) continue;
+      const d = new Date(p.created_at);
+      if (d < since) continue;
       // volume_ml sur la perf elle-même, sinon volume du type de défi
       const vol = p.volume_ml ?? (p.challenge_types as any)?.volume_ml ?? 0;
-      if (vol > 0) totalMl += vol;
+      if (vol <= 0) continue;
+      totalMl += vol;
+      const idx = getBucketIndex(d);
+      if (idx >= 0 && idx < buckets.length) buckets[idx].value += vol;
     }
-    return { totalMl };
+    return { totalMl, buckets };
   }, [myPerfs, hydroPeriod]);
 
   const [gridVisibleCount, setGridVisibleCount] = useState(PERF_GRID_PAGE);
@@ -234,18 +259,12 @@ export default function ProfileScreen() {
               name={profile?.username ?? user.email ?? ''}
               size={90}
             />
-            <View style={st.levelBadge}>
-              <Text style={st.levelBadgeText}>{level}</Text>
-            </View>
           </View>
 
           {/* Infos utilisateur */}
           <View style={st.userInfo}>
             <Text style={st.username} numberOfLines={1}>
               {profile?.username ?? 'Utilisateur'}
-            </Text>
-            <Text style={[st.titleText, { color: titleColor }]}>
-              {titleEmoji} {title}
             </Text>
             {/* Stats inline — pas de doublon avec la section Stats */}
             <Text style={st.quickStats}>
@@ -255,16 +274,14 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* ══ STATS & ÉVOLUTION ══════════════════════════════════════════ */}
       <View style={st.section}>
-        <SectionHeader icon="bar-chart-outline" title="Stats & évolution" />
-
         {!stats && (
           <ActivityIndicator color={Colors.brand} style={{ marginVertical: 20 }} />
         )}
 
-        {/* Suivi de consommation */}
+        {/* Consommation dans le temps */}
         <Card variant="outlined" style={st.hydroCard}>
+          <Text style={st.hydroTitle}>Consommation dans le temps</Text>
           <View style={st.hydroPeriodRow}>
             {HYDRO_PERIODS.map((p) => (
               <TouchableOpacity
@@ -279,47 +296,9 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          <View style={st.hydroStatsRow}>
-            <View style={st.hydroStat}>
-              <Ionicons name="water" size={18} color={Colors.brand} />
-              <Text style={st.hydroValue}>{formatVolume(hydro.totalMl)}</Text>
-              <Text style={st.hydroLabel}>Consommation</Text>
-            </View>
-          </View>
+          <ConsumptionChart data={hydro.buckets} />
         </Card>
 
-        {/* Grille 2 stats (filmées + médailles) */}
-        {stats && (
-          <View style={st.miniStatsRow}>
-            <StatCard
-              icon="camera-outline"
-              value={`${stats.filmedRate}%`}
-              label="Filmées"
-            />
-            <StatCard
-              icon="medal-outline"
-              value={medals ? String(medals.length) : '–'}
-              label="Médailles"
-              iconColor={Colors.brand}
-            />
-          </View>
-        )}
-
-        {/* Progression XP */}
-        <Card variant="outlined" style={st.xpCard}>
-          <View style={st.xpCardHeader}>
-            <Ionicons name="star" size={15} color={Colors.brand} />
-            <Text style={[st.statLabel, { marginLeft: 6, flex: 1 }]}>Progression XP</Text>
-            <Text style={st.xpCardLevel}>Niv. {level}</Text>
-          </View>
-          <View style={st.xpTrack}>
-            <View style={[st.xpFill, { width: `${Math.max(xp.percentage, 0)}%` }]} />
-          </View>
-          <View style={st.xpCardFooter}>
-            <Text style={st.xpCardSub}>{xp.current} / {xp.max} XP</Text>
-            <Text style={st.xpCardNext}>→ Niveau {level + 1}</Text>
-          </View>
-        </Card>
       </View>
 
       {/* ══ MÉDAILLES ══════════════════════════════════════════════════ */}
@@ -510,16 +489,8 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     position: 'relative',
   },
-  levelBadge: {
-    position: 'absolute', bottom: 0, right: 0,
-    backgroundColor: Colors.brand, borderRadius: 10,
-    width: 22, height: 22, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.bg,
-  },
-  levelBadgeText: { color: Colors.white, fontSize: 10, fontWeight: '800' },
   userInfo: { flex: 1, gap: 4 },
   username: { color: Colors.text, fontSize: 21, fontWeight: '800', letterSpacing: -0.3 },
-  titleText: { fontSize: 13, fontWeight: '600' },
   quickStats: { color: Colors.textSecondary, fontSize: 12, marginTop: 2 },
 
   // Section
@@ -528,8 +499,9 @@ const st = StyleSheet.create({
   sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '700' },
   countText: { color: Colors.textTertiary, fontSize: 12 },
 
-  // Hydratation (consommation + vitesse)
+  // Consommation dans le temps
   hydroCard: { padding: 14, marginTop: 8, gap: 14 },
+  hydroTitle: { color: Colors.text, fontSize: 14, fontWeight: '700' },
   hydroPeriodRow: { flexDirection: 'row', gap: 6 },
   hydroChip: {
     flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: 'center',
@@ -538,27 +510,17 @@ const st = StyleSheet.create({
   hydroChipActive: { backgroundColor: Colors.brand + '18', borderColor: Colors.brand },
   hydroChipText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '700' },
   hydroChipTextActive: { color: Colors.brand },
-  hydroStatsRow: { flexDirection: 'row', alignItems: 'center' },
-  hydroStat: { flex: 1, alignItems: 'center', gap: 3 },
-  hydroDivider: { width: 1, alignSelf: 'stretch', backgroundColor: Colors.border, marginVertical: 4 },
-  hydroValue: { color: Colors.text, fontSize: 22, fontWeight: '800' },
-  hydroLabel: { color: Colors.textSecondary, fontSize: 11 },
 
-  // Mini stats (2 cols)
-  miniStatsRow: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 8 },
-  statCard: { flex: 1, paddingVertical: 16, paddingHorizontal: 12, alignItems: 'center', gap: 6 },
-  statValue: { color: Colors.text, fontSize: 22, fontWeight: '800' },
-  statLabel: { color: Colors.textSecondary, fontSize: 11, fontWeight: '500' },
-
-  // XP card
-  xpCard: { padding: 16, gap: 0 },
-  xpCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  xpCardLevel: { color: Colors.brand, fontSize: 12, fontWeight: '700' },
-  xpTrack: { height: 8, backgroundColor: Colors.bgElevated2, borderRadius: 99, overflow: 'hidden', marginBottom: 6 },
-  xpFill: { height: 8, backgroundColor: Colors.brand, borderRadius: 99 },
-  xpCardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
-  xpCardSub: { color: Colors.textSecondary, fontSize: 11 },
-  xpCardNext: { color: Colors.textTertiary, fontSize: 11 },
+  // Graphique de consommation (barres)
+  chartBars: {
+    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
+    height: CHART_HEIGHT, gap: 3,
+  },
+  chartCol: { flex: 1, alignItems: 'center' },
+  chartBar: { width: '55%', borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  chartBaseline: { height: 1, backgroundColor: Colors.border },
+  chartLabelsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, gap: 3 },
+  chartLabel: { flex: 1, color: Colors.textTertiary, fontSize: 10, textAlign: 'center' },
 
   // Médailles
   medalCard: {

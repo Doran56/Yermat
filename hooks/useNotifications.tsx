@@ -123,6 +123,31 @@ export function useMarkNotificationRead() {
   });
 }
 
+// Marque comme lues toutes les notifications non lues d'un type donné — utilisé
+// pour effacer la pastille d'un onglet de filtre (Amis/Points d'eau) à son ouverture.
+export function useMarkNotificationsReadByType() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (type: NotificationType) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('type', type)
+        .eq('read', false);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    },
+  });
+}
+
 export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
   const { user } = useAuth();

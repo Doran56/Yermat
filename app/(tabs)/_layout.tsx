@@ -41,9 +41,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   const tabs = [
     { name: 'index', label: 'Feed' },
-    { name: 'classement', label: 'Recherche' },
     null,
-    { name: 'map', label: 'Carte' },
     { name: 'profile', label: 'Profil' },
   ];
 

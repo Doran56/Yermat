@@ -1,6 +1,45 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Profile } from '@/types/database';
+
+export interface YermatWithProfile {
+  id: string;
+  user_id: string;
+  created_at: string;
+  profiles: Profile | null;
+}
+
+// Liste des utilisateurs ayant laissé une Goutte sur une performance — pas de
+// FK déclarée entre performance_yermats et profiles, donc fetch en 2 temps
+// (même pattern que useComments.tsx).
+export function useYermatUsers(performanceId: string) {
+  return useQuery({
+    queryKey: ['yermat-users', performanceId],
+    queryFn: async () => {
+      const { data: yermats, error } = await supabase
+        .from('performance_yermats')
+        .select('id, user_id, created_at')
+        .eq('performance_id', performanceId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (!yermats?.length) return [] as YermatWithProfile[];
+
+      const userIds = [...new Set(yermats.map(y => y.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
+
+      return yermats.map(y => ({
+        ...y,
+        profiles: profiles?.find(p => p.user_id === y.user_id) ?? null,
+      })) as YermatWithProfile[];
+    },
+    enabled: !!performanceId,
+  });
+}
 
 // Compte agrégé (pas de fetch des lignes) — évite de retélécharger tous les
 // Yermats d'une performance juste pour en afficher le nombre.

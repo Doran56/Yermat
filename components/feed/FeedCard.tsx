@@ -13,10 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
-import { TimeTag } from '@/components/ui/TimeTag';
 import { Colors } from '@/constants/colors';
 import { PerformanceWithDetails } from '@/types/database';
-import { formatRelativeDate } from '@/lib/utils';
+import { formatRelativeDate, formatTime } from '@/lib/utils';
 import { usePerformanceYermats } from '@/hooks/useYermats';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollows } from '@/hooks/useFollows';
@@ -230,12 +229,6 @@ export function FeedCard({ performance, isVisible, shouldLoad, cardHeight, onAut
             <Avatar uri={profile?.avatar_url} name={profile?.username ?? '?'} size={38} />
             <View>
               <Text style={styles.username}>{profile?.username ?? 'Anonyme'}</Text>
-              {bar && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                  <Ionicons name="location-outline" size={12} color={Colors.zinc[400]} />
-                  <Text style={styles.barName}>{bar.name}</Text>
-                </View>
-              )}
             </View>
           </TouchableOpacity>
           {user && user.id !== performance.user_id && (
@@ -255,12 +248,13 @@ export function FeedCard({ performance, isVisible, shouldLoad, cardHeight, onAut
           )}
         </View>
 
-        {/* Badges row */}
+        {/* Détails — lieu · quantité · temps · date */}
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          {challenge && <Badge label={challenge.name} variant="amber" />}
-          <Badge label={status.label} variant="muted" />
-          <Text style={styles.date}>{formatRelativeDate(performance.created_at)}</Text>
-          <TimeTag timeMs={performance.time_ms} style={{ color: Colors.zinc[400] }} />
+          {performance.status === 'pending' && <Badge label={status.label} variant="muted" />}
+          <Text style={styles.date}>
+            {bar?.name ?? '—'} · {challenge?.name ?? ''}
+            {performance.time_ms > 0 ? ` · ${formatTime(performance.time_ms)}` : ''} · {formatRelativeDate(performance.created_at)}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -316,11 +310,6 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
-  },
-  barName: {
-    color: Colors.zinc[400],
-    fontSize: 12,
-    marginTop: 1,
   },
   date: {
     color: Colors.zinc[400],

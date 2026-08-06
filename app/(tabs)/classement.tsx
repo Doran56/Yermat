@@ -16,9 +16,8 @@ import { useSearchBars } from '@/hooks/useSearchBars';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeTag } from '@/components/ui/TimeTag';
 import { Colors } from '@/constants/colors';
-import { formatRelativeDate } from '@/lib/utils';
+import { formatRelativeDate, formatTime } from '@/lib/utils';
 
 const GENDERS = [
   { key: null, label: 'Mixte' },
@@ -53,11 +52,16 @@ export default function ClassementScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const sheetRef = useRef<BottomSheet>(null);
+  const [sheetMode, setSheetMode] = useState<'sort' | 'filters'>('sort');
   const snapPoints = useMemo(() => ['70%'], []);
   const renderBackdrop = useCallback(
     (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />,
     []
   );
+  const openSheet = (mode: 'sort' | 'filters') => {
+    setSheetMode(mode);
+    sheetRef.current?.snapToIndex(0);
+  };
 
   // Recherche d'entités (bars / utilisateurs) — permet de trouver et suivre
   // directement un bar ou un utilisateur, indépendamment du parcours de Yermats.
@@ -83,7 +87,7 @@ export default function ClassementScreen() {
   const [barId, setBarId] = useState<string | null>(null);
   const [barSearch, setBarSearch] = useState('');
   const [username, setUsername] = useState('');
-  const [sort, setSort] = useState<SearchSort>('date_desc');
+  const [sort, setSort] = useState<SearchSort>('time_asc');
 
   const { data: performances, isLoading, refetch: refetchSearch } = useClassement({
     challengeTypeId, barId: null, gender, username: username.trim() || null, month, sort,
@@ -125,6 +129,7 @@ export default function ClassementScreen() {
 
   const activeFilterCount = [gender !== null, challengeTypeId !== null, barId !== null, !!username.trim()].filter(Boolean).length;
   const activeSortLabel = SORTS.find(s => s.key === sort)?.label ?? '';
+  const activePeriodLabel = month ? format(month, 'MMM yyyy', { locale: fr }) : 'Toutes périodes';
 
   const resetFilters = () => {
     setGender(null);
@@ -220,21 +225,33 @@ export default function ClassementScreen() {
         </ScrollView>
       ) : (
         <>
-          {/* Déclencheur du bottom sheet filtres/tri */}
-          <TouchableOpacity
-            onPress={() => sheetRef.current?.snapToIndex(0)}
-            style={styles.filterTrigger}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="options-outline" size={16} color={Colors.text} />
-            <Text style={styles.filterTriggerText}>Trier : {activeSortLabel}</Text>
-            {activeFilterCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-              </View>
-            )}
-            <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
-          </TouchableOpacity>
+          {/* Déclencheurs — Ordre / Filtres */}
+          <View style={styles.triggerRow}>
+            <TouchableOpacity
+              onPress={() => openSheet('sort')}
+              style={styles.filterTrigger}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="swap-vertical-outline" size={16} color={Colors.text} />
+              <Text style={styles.filterTriggerText}>Ordre : {activeSortLabel}</Text>
+              <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => openSheet('filters')}
+              style={styles.filterTrigger}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="options-outline" size={16} color={Colors.text} />
+              <Text style={styles.filterTriggerText}>Filtres : {activePeriodLabel}</Text>
+              {activeFilterCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                </View>
+              )}
+              <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
           {/* Liste de Yermats */}
           {isLoading ? (
@@ -269,10 +286,10 @@ export default function ClassementScreen() {
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.listName}>{p.profiles?.username}</Text>
                     <Text style={styles.listBar} numberOfLines={1}>
-                      {p.bars?.name ?? '—'} · {p.challenge_types?.name ?? ''} · {formatRelativeDate(p.created_at)}
+                      {p.bars?.name ?? '—'} · {p.challenge_types?.name ?? ''}
+                      {p.time_ms > 0 ? ` · ${formatTime(p.time_ms)}` : ''} · {formatRelativeDate(p.created_at)}
                     </Text>
                   </View>
-                  <TimeTag timeMs={p.time_ms} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -295,146 +312,151 @@ export default function ClassementScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.sheetHeaderRow}>
-            <Text style={styles.sheetTitle}>Filtres & tri</Text>
-            <TouchableOpacity onPress={resetFilters} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.resetText}>Réinitialiser</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Tri */}
-          <View style={styles.sheetSection}>
-            <Text style={styles.sheetSectionLabel}>Trier par</Text>
-            <View style={styles.chipWrap}>
-              {SORTS.map(s => (
-                <TouchableOpacity
-                  key={s.key}
-                  onPress={() => setSort(s.key)}
-                  style={[styles.sortChip, sort === s.key && styles.sortChipActive]}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name={s.icon} size={13} color={sort === s.key ? Colors.white : Colors.textSecondary} />
-                  <Text style={[styles.sortChipText, sort === s.key && styles.sortChipTextActive]}>{s.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Période */}
-          <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
-            <Text style={styles.sheetSectionLabel}>Période</Text>
-            <View style={styles.monthRow}>
-              <TouchableOpacity
-                onPress={() => setMonth(m => subMonths(m ?? new Date(), 1))}
-                style={styles.monthBtn}
-              >
-                <Ionicons name="chevron-back" size={18} color={Colors.textSecondary} />
+            <Text style={styles.sheetTitle}>{sheetMode === 'sort' ? 'Trier par' : 'Filtres'}</Text>
+            {sheetMode === 'filters' && (
+              <TouchableOpacity onPress={resetFilters} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.resetText}>Réinitialiser</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setMonth(m => m ? null : startOfMonth(new Date()))} style={{ flex: 1 }}>
-                <Text style={styles.monthLabel}>
-                  {month ? format(month, 'MMMM yyyy', { locale: fr }) : 'Toutes les périodes'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => canGoNext && setMonth(m => addMonths(m ?? new Date(), 1))}
-                style={[styles.monthBtn, !canGoNext && { opacity: 0.3 }]}
-                disabled={!canGoNext}
-              >
-                <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+            )}
           </View>
 
-          {/* Utilisateur */}
-          <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
-            <Text style={styles.sheetSectionLabel}>Utilisateur</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Filtrer par utilisateur…"
-              placeholderTextColor={Colors.textSecondary}
-              value={username}
-              onChangeText={setUsername}
-              clearButtonMode="while-editing"
-            />
-          </View>
-
-          {/* Genre */}
-          <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
-            <Text style={styles.sheetSectionLabel}>Genre</Text>
-            <View style={styles.chipWrap}>
-              {GENDERS.map(g => (
-                <TouchableOpacity
-                  key={String(g.key)}
-                  onPress={() => setGender(g.key)}
-                  style={[styles.filterChip, gender === g.key && styles.filterChipActive]}
-                >
-                  <Text style={[styles.filterChipText, gender === g.key && styles.filterChipTextActive]}>
-                    {g.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Volume */}
-          <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
-            <Text style={styles.sheetSectionLabel}>Volume</Text>
-            <View style={styles.chipWrap}>
-              <TouchableOpacity
-                onPress={() => setChallengeTypeId(null)}
-                style={[styles.filterChip, challengeTypeId === null && styles.filterChipActive]}
-              >
-                <Text style={[styles.filterChipText, challengeTypeId === null && styles.filterChipTextActive]}>
-                  Tous
-                </Text>
-              </TouchableOpacity>
-              {challengeTypes?.map((c: any) => (
-                <TouchableOpacity
-                  key={c.id}
-                  onPress={() => setChallengeTypeId(c.id)}
-                  style={[styles.filterChip, challengeTypeId === c.id && styles.filterChipActive]}
-                >
-                  <Text style={[styles.filterChipText, challengeTypeId === c.id && styles.filterChipTextActive]}>
-                    {c.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Bar */}
-          {bars.length > 0 && (
-            <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
-              <Text style={styles.sheetSectionLabel}>Bar</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Filtrer par bar…"
-                placeholderTextColor={Colors.textSecondary}
-                value={barSearch}
-                onChangeText={setBarSearch}
-                clearButtonMode="while-editing"
-              />
+          {sheetMode === 'sort' ? (
+            /* Tri */
+            <View style={styles.sheetSection}>
               <View style={styles.chipWrap}>
-                <TouchableOpacity
-                  onPress={() => setBarId(null)}
-                  style={[styles.filterChip, barId === null && styles.filterChipActive]}
-                >
-                  <Text style={[styles.filterChipText, barId === null && styles.filterChipTextActive]}>
-                    Tous les bars
-                  </Text>
-                </TouchableOpacity>
-                {filteredBars.map(b => (
+                {SORTS.map(s => (
                   <TouchableOpacity
-                    key={b.id}
-                    onPress={() => setBarId(b.id)}
-                    style={[styles.filterChip, barId === b.id && styles.filterChipActive]}
+                    key={s.key}
+                    onPress={() => setSort(s.key)}
+                    style={[styles.sortChip, sort === s.key && styles.sortChipActive]}
+                    activeOpacity={0.8}
                   >
-                    <Text style={[styles.filterChipText, barId === b.id && styles.filterChipTextActive]}>
-                      {b.name}
-                    </Text>
+                    <Ionicons name={s.icon} size={13} color={sort === s.key ? Colors.white : Colors.textSecondary} />
+                    <Text style={[styles.sortChipText, sort === s.key && styles.sortChipTextActive]}>{s.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
+          ) : (
+            <>
+              {/* Période */}
+              <View style={styles.sheetSection}>
+                <Text style={styles.sheetSectionLabel}>Période</Text>
+                <View style={styles.monthRow}>
+                  <TouchableOpacity
+                    onPress={() => setMonth(m => subMonths(m ?? new Date(), 1))}
+                    style={styles.monthBtn}
+                  >
+                    <Ionicons name="chevron-back" size={18} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setMonth(m => m ? null : startOfMonth(new Date()))} style={{ flex: 1 }}>
+                    <Text style={styles.monthLabel}>
+                      {month ? format(month, 'MMMM yyyy', { locale: fr }) : 'Toutes les périodes'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => canGoNext && setMonth(m => addMonths(m ?? new Date(), 1))}
+                    style={[styles.monthBtn, !canGoNext && { opacity: 0.3 }]}
+                    disabled={!canGoNext}
+                  >
+                    <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Utilisateur */}
+              <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
+                <Text style={styles.sheetSectionLabel}>Utilisateur</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Filtrer par utilisateur…"
+                  placeholderTextColor={Colors.textSecondary}
+                  value={username}
+                  onChangeText={setUsername}
+                  clearButtonMode="while-editing"
+                />
+              </View>
+
+              {/* Genre */}
+              <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
+                <Text style={styles.sheetSectionLabel}>Genre</Text>
+                <View style={styles.chipWrap}>
+                  {GENDERS.map(g => (
+                    <TouchableOpacity
+                      key={String(g.key)}
+                      onPress={() => setGender(g.key)}
+                      style={[styles.filterChip, gender === g.key && styles.filterChipActive]}
+                    >
+                      <Text style={[styles.filterChipText, gender === g.key && styles.filterChipTextActive]}>
+                        {g.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Volume */}
+              <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
+                <Text style={styles.sheetSectionLabel}>Volume</Text>
+                <View style={styles.chipWrap}>
+                  <TouchableOpacity
+                    onPress={() => setChallengeTypeId(null)}
+                    style={[styles.filterChip, challengeTypeId === null && styles.filterChipActive]}
+                  >
+                    <Text style={[styles.filterChipText, challengeTypeId === null && styles.filterChipTextActive]}>
+                      Tous
+                    </Text>
+                  </TouchableOpacity>
+                  {challengeTypes?.map((c: any) => (
+                    <TouchableOpacity
+                      key={c.id}
+                      onPress={() => setChallengeTypeId(c.id)}
+                      style={[styles.filterChip, challengeTypeId === c.id && styles.filterChipActive]}
+                    >
+                      <Text style={[styles.filterChipText, challengeTypeId === c.id && styles.filterChipTextActive]}>
+                        {c.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Bar */}
+              {bars.length > 0 && (
+                <View style={[styles.sheetSection, styles.sheetSectionBorder]}>
+                  <Text style={styles.sheetSectionLabel}>Bar</Text>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Filtrer par bar…"
+                    placeholderTextColor={Colors.textSecondary}
+                    value={barSearch}
+                    onChangeText={setBarSearch}
+                    clearButtonMode="while-editing"
+                  />
+                  <View style={styles.chipWrap}>
+                    <TouchableOpacity
+                      onPress={() => setBarId(null)}
+                      style={[styles.filterChip, barId === null && styles.filterChipActive]}
+                    >
+                      <Text style={[styles.filterChipText, barId === null && styles.filterChipTextActive]}>
+                        Tous les bars
+                      </Text>
+                    </TouchableOpacity>
+                    {filteredBars.map(b => (
+                      <TouchableOpacity
+                        key={b.id}
+                        onPress={() => setBarId(b.id)}
+                        style={[styles.filterChip, barId === b.id && styles.filterChipActive]}
+                      >
+                        <Text style={[styles.filterChipText, barId === b.id && styles.filterChipTextActive]}>
+                          {b.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
           )}
         </BottomSheetScrollView>
       </BottomSheet>
@@ -499,10 +521,13 @@ const styles = StyleSheet.create({
   followPillText: { color: Colors.amber[500], fontSize: 12, fontWeight: '700' },
   followPillTextActive: { color: Colors.white },
 
-  // Filter trigger
+  // Filter/sort triggers
+  triggerRow: {
+    flexDirection: 'row', gap: 8,
+    marginHorizontal: 16, marginBottom: 8,
+  },
   filterTrigger: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginHorizontal: 16, marginBottom: 8,
     paddingHorizontal: 14, paddingVertical: 9,
     borderRadius: 10, borderWidth: 1, borderColor: Colors.border,
     backgroundColor: Colors.bgElevated, alignSelf: 'flex-start',
