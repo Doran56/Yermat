@@ -180,14 +180,6 @@ export default function FeedScreen() {
         </View>
 
         <View style={styles.rightGroup}>
-          <TouchableOpacity
-            onPress={() => router.push('/search')}
-            style={styles.searchBtn}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="search-outline" size={22} color={Colors.zinc[100]} />
-          </TouchableOpacity>
-
           {/* Notifications bell */}
           <TouchableOpacity
             onPress={() => router.push('/notifications')}
@@ -268,7 +260,6 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: Colors.white },
   tabIndicator: { height: 2, width: 20, backgroundColor: Colors.amber[500], borderRadius: 1, marginTop: 2 },
   rightGroup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  searchBtn: { padding: 4 },
   bellBtn: { position: 'relative', padding: 4 },
   bellBadge: {
     position: 'absolute', top: 0, right: 0,

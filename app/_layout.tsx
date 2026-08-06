@@ -92,7 +92,6 @@ function AuthGate() {
       <Stack.Screen name="performance/[id]" />
       <Stack.Screen name="bar/[barId]" />
       <Stack.Screen name="notifications" />
-      <Stack.Screen name="search" />
       <Stack.Screen name="user/[userId]" />
       <Stack.Screen name="admin" />
       <Stack.Screen name="+not-found" />
