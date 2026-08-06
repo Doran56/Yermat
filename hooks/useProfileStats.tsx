@@ -5,12 +5,6 @@ import type { Medal, MedalRank } from '@/lib/gamification';
 interface ProfileStats {
   totalPerformances: number;
   totalBarsVisited: number;
-  bestPerformance: {
-    time: number;
-    barName: string;
-    barCity: string;
-    date: string;
-  } | null;
   filmedRate: number;
 }
 
@@ -32,7 +26,6 @@ export function useProfileStats(userId: string | undefined) {
         .from('performances')
         .select(`
           id,
-          time_ms,
           video_url,
           created_at,
           bars (
@@ -42,24 +35,17 @@ export function useProfileStats(userId: string | undefined) {
           )
         `)
         .eq('user_id', userId)
-        .order('time_ms', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const total = performances?.length || 0;
       const uniqueBars = new Set(performances?.map(p => p.bars?.id).filter(Boolean));
       const withVideo = performances?.filter(p => p.video_url).length || 0;
-      const best = performances?.[0];
 
       return {
         totalPerformances: total,
         totalBarsVisited: uniqueBars.size,
-        bestPerformance: best ? {
-          time: best.time_ms,
-          barName: best.bars?.name || 'Bar inconnu',
-          barCity: best.bars?.city || '',
-          date: best.created_at,
-        } : null,
         filmedRate: total > 0 ? Math.round((withVideo / total) * 100) : 0,
       };
     },

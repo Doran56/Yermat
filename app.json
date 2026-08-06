@@ -18,9 +18,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.yermat",
       "infoPlist": {
-        "NSCameraUsageDescription": "Yermat utilise ta caméra pour filmer tes sessions d'hydratation.",
-        "NSMicrophoneUsageDescription": "Le micro est nécessaire pour enregistrer le son de tes sessions.",
-        "NSLocationWhenInUseUsageDescription": "Yermat utilise ta position pour trouver les points d'eau autour de toi.",
+        "NSCameraUsageDescription": "Yermat utilise ta caméra pour filmer tes vidéos autour d'un verre entre amis.",
+        "NSMicrophoneUsageDescription": "Le micro est nécessaire pour enregistrer le son de tes vidéos.",
+        "NSLocationWhenInUseUsageDescription": "Yermat utilise ta position pour trouver les bars autour de toi.",
         "NSPhotoLibraryUsageDescription": "Accès à ta galerie pour choisir ou sauvegarder des vidéos.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -69,13 +69,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Yermat utilise ta caméra pour filmer tes sessions d'hydratation."
+          "cameraPermission": "Yermat utilise ta caméra pour filmer tes vidéos autour d'un verre entre amis."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Yermat utilise ta position pour trouver les points d'eau autour de toi."
+          "locationWhenInUsePermission": "Yermat utilise ta position pour trouver les bars autour de toi."
         }
       ],
       [

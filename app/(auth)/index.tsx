@@ -62,7 +62,7 @@ export default function EmailScreen() {
             style={{ width: 120, height: 120, resizeMode: 'contain' }}
           />
           <Text style={{ color: Colors.textSecondary, fontSize: 14, marginTop: 16 }}>
-            Bois de l'eau, suis ton hydratation 💧
+            Le Strava des bars, entre amis 🍻
           </Text>
         </View>
 

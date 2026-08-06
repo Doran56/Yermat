@@ -14,7 +14,6 @@ import { usePerformanceYermats } from '@/hooks/useYermats';
 import { useComments } from '@/hooks/useComments';
 import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -164,7 +163,6 @@ export default function PerformanceDetailScreen() {
             {/* Badges + visibilité sur la même ligne si owner */}
             <View style={styles.badgesRow}>
               {challenge && <Badge label={challenge.name} variant="amber" />}
-              {performance.time_ms > 0 && <TimeBadge timeMs={performance.time_ms} size="md" />}
               <StatusBadge status={performance.status as any} />
             </View>
 

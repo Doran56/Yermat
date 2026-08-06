@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate() {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const { subscribe } = usePushNotifications();
@@ -32,12 +32,23 @@ function AuthGate() {
   useEffect(() => {
     if (loading) return;
     const inAuth = segments[0] === '(auth)';
-    if (!session && !inAuth) {
-      router.replace('/(auth)');
-    } else if (session && inAuth) {
+
+    if (!session) {
+      if (!inAuth) router.replace('/(auth)');
+      return;
+    }
+
+    // Vérification d'âge (Apple Guideline 5) : tant que la date de naissance
+    // n'a pas été validée, on bloque l'accès au reste de l'app.
+    if (profile && !profile.age_verified) {
+      if (segments[1] !== 'age-gate') router.replace('/(auth)/age-gate');
+      return;
+    }
+
+    if (profile?.age_verified && inAuth) {
       router.replace('/(tabs)');
     }
-  }, [session, loading, segments]);
+  }, [session, profile, loading, segments]);
 
   // Auto-subscribe to push notifications on login
   useEffect(() => {

@@ -16,7 +16,7 @@ import { useUserPerformances } from '@/hooks/usePerformances';
 import { useFollows } from '@/hooks/useFollows';
 import {
   computeLevel, computeXpProgress, computeTitle, getTitleEmoji,
-  getMedalEmoji, formatTime,
+  getMedalEmoji,
   type LevelTitle, type MedalRank,
 } from '@/lib/gamification';
 import { Avatar } from '@/components/ui/Avatar';
@@ -195,37 +195,7 @@ export default function UserProfileScreen() {
         <View style={st.section}>
           <SectionHeader icon="bar-chart-outline" title="Stats" />
 
-          {stats ? (
-            <Card variant="outlined" style={st.bestTimeCard}>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={st.bestTimeLabel}>Meilleur temps</Text>
-                {stats.bestPerformance ? (
-                  <>
-                    <View style={st.bestTimeRow}>
-                      <Text style={st.bestTimeValue}>
-                        {formatTime(stats.bestPerformance.time)}
-                      </Text>
-                      {!!stats.bestPerformance.barName && (
-                        <Text style={st.bestTimeBar} numberOfLines={1}>
-                          {stats.bestPerformance.barName}
-                        </Text>
-                      )}
-                    </View>
-                    {!!stats.bestPerformance.barCity && (
-                      <Text style={st.bestTimeCity}>{stats.bestPerformance.barCity}</Text>
-                    )}
-                  </>
-                ) : (
-                  <Text style={st.bestTimeEmpty}>–</Text>
-                )}
-              </View>
-              <Ionicons
-                name="trophy"
-                size={32}
-                color={stats.bestPerformance ? Colors.brand : Colors.textTertiary}
-              />
-            </Card>
-          ) : (
+          {!stats && (
             <ActivityIndicator color={Colors.brand} style={{ marginVertical: 20 }} />
           )}
 
@@ -304,13 +274,6 @@ export default function UserProfileScreen() {
                     <Text style={st.medalCategoryLabel} numberOfLines={2}>
                       {m.categoryLabel}
                     </Text>
-
-                    {!!m.bestTime && (
-                      <View style={st.medalMetaRow}>
-                        <Ionicons name="stopwatch-outline" size={12} color={Colors.textTertiary} />
-                        <Text style={st.medalMetaValue}>{formatTime(m.bestTime)}</Text>
-                      </View>
-                    )}
 
                     {isBarMedal && !!(m.barCity || m.barName) && (
                       <View style={st.medalMetaRow}>
@@ -425,17 +388,6 @@ const st = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '700' },
   countText: { color: Colors.textTertiary, fontSize: 12 },
-
-  bestTimeCard: {
-    flexDirection: 'row', alignItems: 'center',
-    padding: 16, gap: 12,
-  },
-  bestTimeLabel: { color: Colors.textSecondary, fontSize: 12, marginBottom: 2 },
-  bestTimeRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' },
-  bestTimeValue: { color: Colors.brand, fontSize: 30, fontWeight: '800', lineHeight: 34 },
-  bestTimeBar: { color: Colors.textSecondary, fontSize: 13, flex: 1 },
-  bestTimeCity: { color: Colors.textTertiary, fontSize: 11 },
-  bestTimeEmpty: { color: Colors.textTertiary, fontSize: 28, fontWeight: '800' },
 
   miniStatsRow: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 8 },
   statCard: { flex: 1, paddingVertical: 16, paddingHorizontal: 12, alignItems: 'center', gap: 6 },

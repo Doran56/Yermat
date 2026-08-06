@@ -63,7 +63,8 @@ export default function VerifyScreen() {
         inputRefs.current[0]?.focus();
         return;
       }
-      router.replace('/(tabs)');
+      // AuthGate (app/_layout.tsx) redirige vers /(auth)/age-gate ou /(tabs)
+      // selon l'état de vérification d'âge une fois le profil chargé.
       return;
     }
 
@@ -79,7 +80,8 @@ export default function VerifyScreen() {
       inputRefs.current[0]?.focus();
       return;
     }
-    router.replace('/(tabs)');
+    // AuthGate (app/_layout.tsx) redirige vers /(auth)/age-gate ou /(tabs)
+    // selon l'état de vérification d'âge une fois le profil chargé.
   };
 
   const resend = async () => {

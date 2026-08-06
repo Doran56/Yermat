@@ -63,24 +63,13 @@ export function formatTimeShort(ms: number): string {
   return seconds.toFixed(1) + 's';
 }
 
-// ─── Hydratation : volume & vitesse ─────────────────────────────────────────
+// ─── Hydratation : volume ────────────────────────────────────────────────────
 
 /** Formate un volume en millilitres → "0,5 L" ou "250 mL". */
 export function formatVolume(ml: number | null | undefined): string {
   if (!ml) return '0 L';
   if (ml < 1000) return `${ml} mL`;
   return `${(ml / 1000).toFixed(ml % 1000 === 0 ? 0 : 1).replace('.', ',')} L`;
-}
-
-/** Vitesse d'hydratation en litres par seconde (volume ÷ temps). */
-export function computeSpeed(volumeMl: number | null | undefined, timeMs: number | null | undefined): number {
-  if (!volumeMl || !timeMs || timeMs <= 0) return 0;
-  return (volumeMl / 1000) / (timeMs / 1000);
-}
-
-/** Formate une vitesse en L/s → "1,2 L/s". */
-export function formatSpeed(litersPerSecond: number): string {
-  return `${litersPerSecond.toFixed(2).replace('.', ',')} L/s`;
 }
 
 export type MedalRank = 1 | 2 | 3;

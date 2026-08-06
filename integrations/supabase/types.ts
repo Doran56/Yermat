@@ -381,6 +381,7 @@ export type Database = {
         Row: {
           age_verified: boolean
           avatar_url: string | null
+          birth_date: string | null
           created_at: string
           email: string | null
           gender: string | null
@@ -394,6 +395,7 @@ export type Database = {
         Insert: {
           age_verified?: boolean
           avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           email?: string | null
           gender?: string | null
@@ -407,6 +409,7 @@ export type Database = {
         Update: {
           age_verified?: boolean
           avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           email?: string | null
           gender?: string | null
@@ -666,12 +669,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      app_role: ["admin", "moderator", "user"],
-      performance_visibility: ["public", "followers", "private"],
-    },
-  },
-} as const

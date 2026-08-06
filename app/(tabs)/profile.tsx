@@ -16,8 +16,8 @@ import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { EULA_URL, PRIVACY_URL } from '@/constants/legal';
 import {
   computeLevel, computeXpProgress, computeTitle, getTitleEmoji,
-  getMedalEmoji, formatTime,
-  computeSpeed, formatSpeed, formatVolume,
+  getMedalEmoji,
+  formatVolume,
   type LevelTitle, type MedalRank,
 } from '@/lib/gamification';
 import { Avatar } from '@/components/ui/Avatar';
@@ -138,7 +138,7 @@ export default function ProfileScreen() {
   const titleColor = getTitleColorHex(title);
   const titleEmoji = getTitleEmoji(title);
 
-  // Suivi d'hydratation : consommation par période + débit moyen L/s
+  // Suivi de consommation par période
   const [hydroPeriod, setHydroPeriod] = useState<HydroPeriod>('day');
   const hydro = useMemo(() => {
     const perfs = myPerfs ?? [];
@@ -157,20 +157,13 @@ export default function ProfileScreen() {
       default:      since = startOfDay;
     }
     let totalMl = 0;
-    let speedSum = 0;
-    let speedCount = 0;
     for (const p of perfs) {
       if (new Date(p.created_at) < since) continue;
       // volume_ml sur la perf elle-même, sinon volume du type de défi
       const vol = p.volume_ml ?? (p.challenge_types as any)?.volume_ml ?? 0;
       if (vol > 0) totalMl += vol;
-      if (vol > 0 && p.time_ms > 0) {
-        speedSum += computeSpeed(vol, p.time_ms);
-        speedCount++;
-      }
     }
-    const avgSpeed = speedCount > 0 ? speedSum / speedCount : 0;
-    return { totalMl, avgSpeed };
+    return { totalMl };
   }, [myPerfs, hydroPeriod]);
 
   const [gridVisibleCount, setGridVisibleCount] = useState(PERF_GRID_PAGE);
@@ -266,42 +259,11 @@ export default function ProfileScreen() {
       <View style={st.section}>
         <SectionHeader icon="bar-chart-outline" title="Stats & évolution" />
 
-        {/* Carte meilleur temps (full width) */}
-        {stats ? (
-          <Card variant="outlined" style={st.bestTimeCard}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={st.bestTimeLabel}>Meilleur temps</Text>
-              {stats.bestPerformance ? (
-                <>
-                  <View style={st.bestTimeRow}>
-                    <Text style={st.bestTimeValue}>
-                      {formatTime(stats.bestPerformance.time)}
-                    </Text>
-                    {!!stats.bestPerformance.barName && (
-                      <Text style={st.bestTimeBar} numberOfLines={1}>
-                        {stats.bestPerformance.barName}
-                      </Text>
-                    )}
-                  </View>
-                  {!!stats.bestPerformance.barCity && (
-                    <Text style={st.bestTimeCity}>{stats.bestPerformance.barCity}</Text>
-                  )}
-                </>
-              ) : (
-                <Text style={st.bestTimeEmpty}>–</Text>
-              )}
-            </View>
-            <Ionicons
-              name="trophy"
-              size={32}
-              color={stats.bestPerformance ? Colors.brand : Colors.textTertiary}
-            />
-          </Card>
-        ) : (
+        {!stats && (
           <ActivityIndicator color={Colors.brand} style={{ marginVertical: 20 }} />
         )}
 
-        {/* Suivi d'hydratation : consommation + vitesse L/s */}
+        {/* Suivi de consommation */}
         <Card variant="outlined" style={st.hydroCard}>
           <View style={st.hydroPeriodRow}>
             {HYDRO_PERIODS.map((p) => (
@@ -322,12 +284,6 @@ export default function ProfileScreen() {
               <Ionicons name="water" size={18} color={Colors.brand} />
               <Text style={st.hydroValue}>{formatVolume(hydro.totalMl)}</Text>
               <Text style={st.hydroLabel}>Consommation</Text>
-            </View>
-            <View style={st.hydroDivider} />
-            <View style={st.hydroStat}>
-              <Ionicons name="speedometer-outline" size={18} color={Colors.brand} />
-              <Text style={st.hydroValue}>{formatSpeed(hydro.avgSpeed)}</Text>
-              <Text style={st.hydroLabel}>Débit moyen</Text>
             </View>
           </View>
         </Card>
@@ -414,14 +370,6 @@ export default function ProfileScreen() {
                   <Text style={st.medalCategoryLabel} numberOfLines={2}>
                     {m.categoryLabel}
                   </Text>
-
-                  {/* Meilleur temps */}
-                  {!!m.bestTime && (
-                    <View style={st.medalMetaRow}>
-                      <Ionicons name="stopwatch-outline" size={12} color={Colors.textTertiary} />
-                      <Text style={st.medalMetaValue}>{formatTime(m.bestTime)}</Text>
-                    </View>
-                  )}
 
                   {/* Ville du bar (pour les médailles de bar seulement) */}
                   {isBarMedal && !!(m.barCity || m.barName) && (
@@ -579,18 +527,6 @@ const st = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { color: Colors.text, fontSize: 16, fontWeight: '700' },
   countText: { color: Colors.textTertiary, fontSize: 12 },
-
-  // Best time card
-  bestTimeCard: {
-    flexDirection: 'row', alignItems: 'center',
-    padding: 16, gap: 12,
-  },
-  bestTimeLabel: { color: Colors.textSecondary, fontSize: 12, marginBottom: 2 },
-  bestTimeRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' },
-  bestTimeValue: { color: Colors.brand, fontSize: 30, fontWeight: '800', lineHeight: 34 },
-  bestTimeBar: { color: Colors.textSecondary, fontSize: 13, flex: 1 },
-  bestTimeCity: { color: Colors.textTertiary, fontSize: 11 },
-  bestTimeEmpty: { color: Colors.textTertiary, fontSize: 28, fontWeight: '800' },
 
   // Hydratation (consommation + vitesse)
   hydroCard: { padding: 14, marginTop: 8, gap: 14 },

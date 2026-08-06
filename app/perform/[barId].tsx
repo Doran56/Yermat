@@ -18,7 +18,6 @@ import { useBar } from '@/hooks/useBars';
 import { useChallengeTypes } from '@/hooks/useChallengeTypes';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/constants/colors';
-import { Typography } from '@/constants/typography';
 import { supabase } from '@/integrations/supabase/client';
 
 type Step = 'setup' | 'record' | 'confirm';
@@ -44,12 +43,10 @@ export default function PerformScreen() {
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [phase, setPhase] = useState<RecordingPhase>('idle');
   const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [recordingMs, setRecordingMs] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
   const { showReveal } = useReveal();
 
   const cameraRef = useRef<CameraView>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
   const recordingMsRef = useRef(0);
   const videoUriRef = useRef<string | null>(null);
@@ -80,15 +77,11 @@ export default function PerformScreen() {
     if (!micPermission?.granted) { await requestMicPermission(); return; }
     if (!cameraRef.current) return;
 
-    setRecordingMs(0);
     savedBrightnessRef.current = await Brightness.getBrightnessAsync();
     await Brightness.setBrightnessAsync(1);
     setPhase('recording');
     flashOpacity.value = withTiming(1, { duration: 150 });
     startTimeRef.current = Date.now();
-    timerRef.current = setInterval(() => {
-      setRecordingMs(Date.now() - startTimeRef.current);
-    }, 50);
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
@@ -106,9 +99,7 @@ export default function PerformScreen() {
   const stopRecording = () => {
     if (phase !== 'recording' || !cameraRef.current) return;
     const finalMs = Date.now() - startTimeRef.current;
-    clearInterval(timerRef.current!);
     recordingMsRef.current = finalMs;
-    setRecordingMs(finalMs);
     setPhase('stopping');
     flashOpacity.value = 0;
     Brightness.setBrightnessAsync(savedBrightnessRef.current);
@@ -238,11 +229,6 @@ export default function PerformScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       showReveal({
-        rankGlobal: data?.rankGlobal ?? null,
-        totalGlobal: data?.totalGlobal ?? null,
-        rankBar: data?.rankBar ?? null,
-        totalBar: data?.totalBar ?? null,
-        timeMs: finalMs,
         barName: bar?.name ?? null,
       });
       router.dismissAll();
@@ -306,7 +292,7 @@ export default function PerformScreen() {
             </View>
           ))}
 
-          {/* Message de modération */}
+          {/* Message de modération — alcool, pas d'euphémisme */}
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -316,9 +302,9 @@ export default function PerformScreen() {
             paddingVertical: 10,
             paddingHorizontal: 12,
           }}>
-            <Text style={{ fontSize: 16 }}>💧</Text>
+            <Text style={{ fontSize: 16 }}>🔞</Text>
             <Text style={{ flex: 1, color: Colors.textSecondary, fontSize: 12, lineHeight: 16 }}>
-              Reste hydraté et bois à ton rythme. Écoute ton corps : l'objectif est le plaisir, pas l'excès.
+              Réservé aux 18 ans et plus. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.
             </Text>
           </View>
         </ScrollView>
@@ -385,9 +371,6 @@ export default function PerformScreen() {
         {phase === 'recording' && (
           <Animated.View style={[styles.flashOverlay, flashStyle]}>
             <Pressable style={[StyleSheet.absoluteFill, styles.flashOverlayInner]} onPress={stopRecording}>
-              <Text style={styles.chronoText} pointerEvents="none">
-                {(recordingMs / 1000).toFixed(2)}s
-              </Text>
               <View style={styles.fakeStopBtn} pointerEvents="none">
                 <View style={styles.fakeStopBtnSquare} />
               </View>
@@ -566,14 +549,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',
-  },
-  chronoText: {
-    fontSize: 72, fontFamily: Typography.fontFamily.display, color: Colors.zinc[950],
-    textAlign: 'center', marginBottom: 28,
-    fontVariant: ['tabular-nums'],
-    textShadowColor: 'rgba(0,0,0,0.08)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   flashOverlayInner: {
     alignItems: 'center', justifyContent: 'center',

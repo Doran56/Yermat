@@ -1,7 +1,11 @@
 # Guide de remplissage App Store Connect — Yermat
 
 > Suis les sections dans l'ordre de l'interface App Store Connect (ASC).
-> Positionnement : « le Strava des bars » — zéro mention de vitesse de consommation (risque guideline 1.4.3).
+> Positionnement : « le Strava des bars », assumé comme app 18+ liée à l'alcool.
+> Depuis la mise en conformité Guideline 5 (retrait du chrono, du classement/médailles par
+> vitesse, de la stat de débit, + vérification d'âge réelle), le classement restant est basé
+> sur la participation (nombre de vidéos publiées), jamais sur la vitesse ou la quantité
+> consommée — c'est un fait produit, pas juste un choix de wording.
 > Champs `<À REMPLIR>` = infos que toi seul as.
 
 ---
@@ -121,12 +125,36 @@ Pour vous connecter :
 1. Saisissez l'email de démo ci-dessous dans l'app.
 2. Récupérez le code à 6 chiffres dans la boîte mail (identifiants fournis).
 3. Saisissez le code dans l'app.
+4. Lors de la première connexion, l'app demande une date de naissance : indiquez une date
+   correspondant à un adulte (18 ans ou plus) pour passer la vérification d'âge.
 
 Email de démo : <REMPLIR>
 Accès à la boîte mail — identifiant : <REMPLIR> / mot de passe : <REMPLIR>
 
-Note : Yermat est une app sociale de défis entre amis, réservée aux 18+, avec un
-message de modération sur la consommation d'alcool affiché dans l'app.
+---
+Réponse au rejet Guideline 5 (Legal) — « encourages users to participate in excessive
+drinking » :
+
+Nous avons identifié que le mécanisme mis en cause était la mise en avant de la vitesse
+de consommation d'alcool (chronomètre affiché pendant l'enregistrement, classement mensuel
+trié par temps le plus rapide, médailles par vitesse, statistique de « débit » en L/s, et
+notifications poussant à défendre une place dans ce classement). Nous avons retiré
+l'intégralité de ces éléments :
+- Le chronomètre n'est plus affiché pendant l'enregistrement d'une vidéo.
+- Le classement (onglet « Classement ») est désormais basé sur le nombre de vidéos publiées
+  (participation), jamais sur la vitesse ou la quantité d'alcool consommée.
+- Les médailles mensuelles récompensent la participation, plus la vitesse.
+- La statistique de débit (L/s) a été supprimée du profil.
+- La campagne de notifications push incitant à « défendre sa place » au classement a été
+  retirée.
+- Une vérification d'âge réelle a été ajoutée : une date de naissance est demandée à
+  l'inscription et l'accès est refusé sous 18 ans.
+- Un message de modération explicite (« L'abus d'alcool est dangereux pour la santé, à
+  consommer avec modération. Réservé aux 18 ans et plus. ») est affiché à l'inscription et
+  avant chaque publication.
+
+Note : Yermat est une app sociale de partage de vidéos entre amis dans des bars, réservée
+aux 18+, sans aucune mécanique de compétition de vitesse/quantité de consommation.
 ```
 - **Contact Information** : `<Prénom> <Nom>`, `<téléphone>`, `<email>`
 

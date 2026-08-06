@@ -153,79 +153,11 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Performance created: ${performance.id}, time: ${timeMs}ms, bar: ${barId}`);
-
-    // ============ GLOBAL RANK (all bars, this challenge) ============
-    let rankGlobal: number | null = null;
-    let totalGlobal: number | null = null;
-
-    {
-      const { data: allGlobalPerfs } = await supabaseServiceRole
-        .from('performances')
-        .select('user_id, time_ms')
-        .eq('challenge_type_id', challengeTypeId)
-        .order('time_ms', { ascending: true });
-
-      if (allGlobalPerfs && allGlobalPerfs.length > 0) {
-        const bestByUser = new Map<string, number>();
-        for (const p of allGlobalPerfs as { user_id: string; time_ms: number }[]) {
-          const existing = bestByUser.get(p.user_id);
-          if (!existing || p.time_ms < existing) bestByUser.set(p.user_id, p.time_ms);
-        }
-        const sorted = Array.from(bestByUser.entries()).sort((a, b) => a[1] - b[1]);
-        rankGlobal = sorted.findIndex(([uid]) => uid === user.id) + 1;
-        totalGlobal = sorted.length;
-        if (rankGlobal === 0) rankGlobal = null;
-      }
-    }
-
-    // ============ BAR RANK (this bar, this challenge) ============
-    let rankBar: number | null = null;
-    let totalBar: number | null = null;
-    let userRank: number | null = null; // legacy top-3 field
-    let dethronedUserId: string | null = null;
-
-    if (barId) {
-      const { data: allBarPerfs } = await supabaseServiceRole
-        .from('performances')
-        .select('user_id, time_ms')
-        .eq('bar_id', barId)
-        .eq('challenge_type_id', challengeTypeId)
-        .order('time_ms', { ascending: true });
-
-      if (allBarPerfs && allBarPerfs.length > 0) {
-        const bestByUser = new Map<string, number>();
-        for (const p of allBarPerfs as { user_id: string; time_ms: number }[]) {
-          const existing = bestByUser.get(p.user_id);
-          if (!existing || p.time_ms < existing) bestByUser.set(p.user_id, p.time_ms);
-        }
-        const sorted = Array.from(bestByUser.entries()).sort((a, b) => a[1] - b[1]);
-        const idx = sorted.findIndex(([uid]) => uid === user.id);
-        rankBar = idx >= 0 ? idx + 1 : null;
-        totalBar = sorted.length;
-        if (rankBar !== null && rankBar <= 3) userRank = rankBar;
-
-        // Detect dethronement: user just claimed #1 with this new performance
-        if (rankBar === 1 && sorted.length >= 2 && sorted[0][1] === timeMs) {
-          const runnerUpId = sorted[1][0];
-          if (runnerUpId !== user.id) dethronedUserId = runnerUpId;
-        }
-      }
-    }
-
-    // Personal best check (global across all bars for this challenge)
-    const { data: prevBestPerfs } = await supabaseServiceRole
-      .from('performances')
-      .select('time_ms')
-      .eq('user_id', user.id)
-      .eq('challenge_type_id', challengeTypeId)
-      .neq('id', performance.id)
-      .order('time_ms', { ascending: true })
-      .limit(1);
-    const prevBestTime = prevBestPerfs?.[0]?.time_ms ?? null;
-    const isPersonalBest = prevBestTime !== null && timeMs < prevBestTime;
+    console.log(`Performance created: ${performance.id}, bar: ${barId}`);
 
     // ============ XP CALCULATION ============
+    // Volontairement indépendant du temps/de la vitesse de consommation :
+    // seule la participation (vidéo, nouveau lieu) est récompensée.
     let xpGained = 10;
 
     if (videoUrl && videoUrl.trim() !== '') {
@@ -242,22 +174,6 @@ serve(async (req) => {
 
       if (previousPerfsInBar === 0) {
         xpGained += 20;
-      }
-
-      if (rankBar !== null) {
-        const { data: allBarPerfs } = await supabaseServiceRole
-          .from('performances')
-          .select('user_id, time_ms')
-          .eq('bar_id', barId)
-          .eq('challenge_type_id', challengeTypeId)
-          .order('time_ms', { ascending: true });
-
-        const userBestTime = (allBarPerfs as { user_id: string; time_ms: number }[])!
-          .filter((p) => p.user_id === user.id)
-          .reduce((min, p) => Math.min(min, p.time_ms), Infinity);
-        if (userBestTime === timeMs) {
-          xpGained += 30;
-        }
       }
     }
 
@@ -281,7 +197,7 @@ serve(async (req) => {
         .eq('user_id', user.id);
     }
 
-    console.log(`XP: +${xpGained}, rankGlobal: ${rankGlobal}/${totalGlobal}, rankBar: ${rankBar}/${totalBar}`);
+    console.log(`XP: +${xpGained}`);
 
     // Fire-and-forget notifications
     const supabaseUrlForPush = Deno.env.get('SUPABASE_URL') ?? '';
@@ -302,35 +218,8 @@ serve(async (req) => {
       }),
     }).catch(err => console.error('notify-followers error:', err));
 
-    if (dethronedUserId) {
-      fetch(`${supabaseUrlForPush}/functions/v1/notify-reaction`, {
-        method: 'POST',
-        headers: notifHeaders,
-        body: JSON.stringify({
-          type: 'rank_beaten',
-          actorUserId: user.id,
-          targetUserId: dethronedUserId,
-          barId: barId || null,
-          performanceId: performance.id,
-        }),
-      }).catch(err => console.error('notify rank_beaten error:', err));
-    }
-
-    if (isPersonalBest) {
-      fetch(`${supabaseUrlForPush}/functions/v1/notify-reaction`, {
-        method: 'POST',
-        headers: notifHeaders,
-        body: JSON.stringify({
-          type: 'personal_best',
-          actorUserId: user.id,
-          targetUserId: user.id,
-          performanceId: performance.id,
-        }),
-      }).catch(err => console.error('notify personal_best error:', err));
-    }
-
     return new Response(
-      JSON.stringify({ success: true, performance, xpGained, userRank, rankGlobal, totalGlobal, rankBar, totalBar }),
+      JSON.stringify({ success: true, performance, xpGained }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

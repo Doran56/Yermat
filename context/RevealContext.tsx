@@ -1,11 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 
 export type RevealData = {
-  rankGlobal: number | null;
-  totalGlobal: number | null;
-  rankBar: number | null;
-  totalBar: number | null;
-  timeMs: number;
   barName: string | null;
 };
 

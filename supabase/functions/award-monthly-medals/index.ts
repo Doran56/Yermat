@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     // Fetch all approved public performances for the previous month
     const { data: performances, error: perfError } = await supabase
       .from("performances")
-      .select("id, user_id, bar_id, challenge_type_id, time_ms")
+      .select("id, user_id, bar_id, challenge_type_id")
       .eq("status", "approved")
       .eq("visibility", "public")
       .gte("created_at", monthStart)
@@ -52,27 +52,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch profiles for gender info
-    const userIds = [...new Set(performances.map((p) => p.user_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, gender")
-      .in("user_id", userIds);
-
-    const genderMap = new Map((profiles || []).map((p) => [p.user_id, p.gender]));
-
-    // Helper: get best time per user from a list of performances
-    function getTop3(perfs: typeof performances): { user_id: string; time_ms: number }[] {
-      const best = new Map<string, number>();
+    // Médailles basées sur la participation (nombre de Yermats publiés), jamais
+    // sur la vitesse/quantité consommée — voir Guideline 5 (Legal) d'Apple.
+    // Helper: classe les utilisateurs par nombre de publications décroissant
+    function getTop3(perfs: typeof performances): { user_id: string; count: number }[] {
+      const counts = new Map<string, number>();
       for (const p of perfs) {
-        const existing = best.get(p.user_id);
-        if (!existing || p.time_ms < existing) {
-          best.set(p.user_id, p.time_ms);
-        }
+        counts.set(p.user_id, (counts.get(p.user_id) ?? 0) + 1);
       }
-      return Array.from(best.entries())
-        .map(([user_id, time_ms]) => ({ user_id, time_ms }))
-        .sort((a, b) => a.time_ms - b.time_ms)
+      return Array.from(counts.entries())
+        .map(([user_id, count]) => ({ user_id, count }))
+        .sort((a, b) => b.count - a.count)
         .slice(0, 3);
     }
 
@@ -87,7 +77,7 @@ Deno.serve(async (req) => {
     }> = [];
 
     function addMedals(
-      top3: { user_id: string; time_ms: number }[],
+      top3: { user_id: string; count: number }[],
       category: string,
       challengeTypeId: string | null = null,
       barId: string | null = null
@@ -100,28 +90,22 @@ Deno.serve(async (req) => {
           category,
           challenge_type_id: challengeTypeId,
           bar_id: barId,
-          time_ms: entry.time_ms,
+          time_ms: 0, // non pertinent : la médaille récompense la participation, pas la vitesse
         });
       });
     }
 
-    // 1. General
+    // 1. General (le plus actif du mois)
     addMedals(getTop3(performances), "general");
 
-    // 2. By gender
-    const malePerfs = performances.filter((p) => genderMap.get(p.user_id) === "male");
-    const femalePerfs = performances.filter((p) => genderMap.get(p.user_id) === "female");
-    if (malePerfs.length > 0) addMedals(getTop3(malePerfs), "gender_male");
-    if (femalePerfs.length > 0) addMedals(getTop3(femalePerfs), "gender_female");
-
-    // 3. By challenge type
+    // 2. By challenge type (le plus actif sur ce format)
     const challengeIds = [...new Set(performances.map((p) => p.challenge_type_id))];
     for (const ctId of challengeIds) {
       const ctPerfs = performances.filter((p) => p.challenge_type_id === ctId);
       addMedals(getTop3(ctPerfs), `challenge_${ctId}`, ctId, null);
     }
 
-    // 4. By bar
+    // 3. By bar (le plus actif dans ce lieu)
     const barIds = [...new Set(performances.map((p) => p.bar_id).filter(Boolean))] as string[];
     for (const barId of barIds) {
       const barPerfs = performances.filter((p) => p.bar_id === barId);

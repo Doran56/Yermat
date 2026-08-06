@@ -8,33 +8,17 @@ import { useReveal } from '@/context/RevealContext';
 import { Colors } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
 
-function formatMs(ms: number) {
-  return `${(ms / 1000).toFixed(2)}s`;
-}
-
 export function RevealOverlay() {
   const { revealData, clearReveal } = useReveal();
 
   // Shared values — always at top level (Rules of Hooks)
   const r1Op = useSharedValue(0);
   const r1Y  = useSharedValue(24);
-  const r2Op = useSharedValue(0);
-  const r2Y  = useSharedValue(24);
-  const r3Op = useSharedValue(0);
-  const r3Y  = useSharedValue(24);
   const rBtnOp = useSharedValue(0);
 
   const animStyle1 = useAnimatedStyle(() => ({
     opacity: r1Op.value,
     transform: [{ translateY: r1Y.value }],
-  }));
-  const animStyle2 = useAnimatedStyle(() => ({
-    opacity: r2Op.value,
-    transform: [{ translateY: r2Y.value }],
-  }));
-  const animStyle3 = useAnimatedStyle(() => ({
-    opacity: r3Op.value,
-    transform: [{ translateY: r3Y.value }],
   }));
   const animStyleBtn = useAnimatedStyle(() => ({
     opacity: rBtnOp.value,
@@ -42,20 +26,12 @@ export function RevealOverlay() {
 
   const triggerAnimations = useCallback(() => {
     r1Op.value = 0; r1Y.value = 24;
-    r2Op.value = 0; r2Y.value = 24;
-    r3Op.value = 0; r3Y.value = 24;
     rBtnOp.value = 0;
 
     r1Op.value = withDelay(200, withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }));
     r1Y.value  = withDelay(200, withSpring(0, { damping: 18, stiffness: 180 }));
 
-    r2Op.value = withDelay(500, withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }));
-    r2Y.value  = withDelay(500, withSpring(0, { damping: 18, stiffness: 180 }));
-
-    r3Op.value = withDelay(800, withTiming(1, { duration: 600, easing: Easing.out(Easing.quad) }));
-    r3Y.value  = withDelay(800, withSpring(0, { damping: 14, stiffness: 120 }));
-
-    rBtnOp.value = withDelay(1200, withTiming(1, { duration: 400 }));
+    rBtnOp.value = withDelay(600, withTiming(1, { duration: 400 }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -67,30 +43,14 @@ export function RevealOverlay() {
 
   return (
     <View style={styles.overlay}>
-      <Text style={styles.title}>🎯 Résultats</Text>
+      <Text style={styles.title}>💧 Publié !</Text>
 
-      <Animated.View style={[styles.card, animStyle1]}>
-        <Text style={styles.cardLabel}>Classement général</Text>
-        <Text style={styles.cardValue}>
-          #{revealData.rankGlobal ?? '?'}
-          <Text style={styles.cardTotal}> / {revealData.totalGlobal ?? '?'} joueurs</Text>
+      <Animated.View style={[styles.card, styles.cardHighlight, animStyle1]}>
+        <Text style={styles.cardLabel}>
+          {revealData.barName ? `Ton Yermat au ${revealData.barName}` : 'Ton Yermat'}
         </Text>
-      </Animated.View>
-
-      {revealData.barName && (
-        <Animated.View style={[styles.card, animStyle2]}>
-          <Text style={styles.cardLabel}>Dans {revealData.barName}</Text>
-          <Text style={styles.cardValue}>
-            #{revealData.rankBar ?? '?'}
-            <Text style={styles.cardTotal}> / {revealData.totalBar ?? '?'}</Text>
-          </Text>
-        </Animated.View>
-      )}
-
-      <Animated.View style={[styles.card, styles.cardHighlight, animStyle3]}>
-        <Text style={styles.cardLabel}>Ton temps</Text>
-        <Text style={[styles.cardValue, { color: Colors.amber[500], fontSize: 36 }]}>
-          {formatMs(revealData.timeMs)}
+        <Text style={[styles.cardValue, { color: Colors.amber[500], fontSize: 22 }]}>
+          est en ligne
         </Text>
       </Animated.View>
 

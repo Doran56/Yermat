@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsAdmin, useAllPerformances, useModeratePerformance } from '@/hooks/useAdmin';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { PerformanceThumb } from '@/components/profile/PerformanceThumb';
@@ -127,7 +126,6 @@ export default function AdminScreen() {
 
               <View style={styles.chipsRow}>
                 {p.challenge_types && <Badge label={p.challenge_types.name} variant="amber" />}
-                {p.time_ms > 0 && <TimeBadge timeMs={p.time_ms} size="sm" />}
                 <Text style={styles.date}>{formatRelativeDate(p.created_at)}</Text>
               </View>
             </View>

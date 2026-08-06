@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator,
@@ -12,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeBadge } from '@/components/ui/TimeBadge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
@@ -42,33 +40,7 @@ export default function BarDetailScreen() {
     },
     enabled: !!barId,
   });
-  const { data: leaderboard, isLoading: leaderboardLoading } = useQuery({
-    queryKey: ['bar-leaderboard-top', barId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('performances')
-        .select('*, profiles!performances_user_id_profiles_fkey(id, user_id, username, avatar_url)')
-        .eq('bar_id', barId)
-        .eq('status', 'approved')
-        .gt('time_ms', 0)
-        .order('time_ms', { ascending: true })
-        .limit(100);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!barId,
-  });
   const { barFollows, toggleBarFollow } = useFollows();
-
-  const topLeaderboard = useMemo(() => {
-    if (!leaderboard) return [];
-    const byUser = new Map<string, any>();
-    for (const p of leaderboard) {
-      const existing = byUser.get(p.user_id);
-      if (!existing || p.time_ms < existing.time_ms) byUser.set(p.user_id, p);
-    }
-    return Array.from(byUser.values()).slice(0, 10);
-  }, [leaderboard]);
 
   const isFollowing = barFollows?.some((f: any) => f.bar_id === barId);
 
@@ -148,42 +120,6 @@ export default function BarDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Classement */}
-        {(leaderboardLoading || topLeaderboard.length > 0) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Classement</Text>
-            {leaderboardLoading ? (
-              <ActivityIndicator color={Colors.amber[500]} />
-            ) : (
-              <>
-                {topLeaderboard.map((p: any, i: number) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    onPress={() => router.push(`/performance/${p.id}`)}
-                    style={styles.perfRow}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.rankText}>#{i + 1}</Text>
-                    <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username ?? '?'} size={36} />
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.perfUser}>{p.profiles?.username ?? 'Anonyme'}</Text>
-                    </View>
-                    <TimeBadge timeMs={p.time_ms} size="sm" />
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  onPress={() => router.push('/(tabs)/classement')}
-                  style={styles.voirPlusBtn}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.voirPlusText}>Voir plus</Text>
-                  <Ionicons name="chevron-forward" size={14} color={Colors.amber[500]} />
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        )}
-
         {/* Yermats récents */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Yermats récents</Text>
@@ -205,7 +141,6 @@ export default function BarDetailScreen() {
                     <Text style={styles.perfUser}>{p.profiles?.username ?? 'Anonyme'}</Text>
                     <Text style={styles.perfDate}>{formatRelativeDate(p.created_at)}</Text>
                   </View>
-                  {p.time_ms > 0 && <TimeBadge timeMs={p.time_ms} size="sm" />}
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
@@ -247,9 +182,6 @@ const styles = StyleSheet.create({
   barEmoji: { fontSize: 40 },
   barName: { color: Colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
   barAddress: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center' },
-  rankText: {
-    color: Colors.textSecondary, fontSize: 13, fontWeight: '700', width: 32,
-  },
   infoSection: { paddingHorizontal: 16, marginBottom: 16 },
   infoSectionTitle: {
     color: Colors.textSecondary,

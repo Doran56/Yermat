@@ -11,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useClassement } from '@/hooks/useClassement';
 import { useChallengeTypes } from '@/hooks/useChallengeTypes';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Colors } from '@/constants/colors';
 
 const GENDERS = [
@@ -34,7 +33,7 @@ export default function ClassementScreen() {
   const [barSearch, setBarSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: performances, isLoading, refetch: refetchClassement } = useClassement({ challengeTypeId, gender, username: null, month });
+  const { data: entries, isLoading, refetch: refetchClassement } = useClassement({ challengeTypeId, gender, username: null, month });
   const { data: challengeTypes, refetch: refetchChallengeTypes } = useChallengeTypes();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -49,14 +48,15 @@ export default function ClassementScreen() {
   const bars = useMemo(() => {
     const seen = new Set<string>();
     const list: { id: string; name: string }[] = [];
-    for (const p of performances ?? []) {
-      if ((p as any).bar_id && (p as any).bars?.name && !seen.has((p as any).bar_id)) {
-        seen.add((p as any).bar_id);
-        list.push({ id: (p as any).bar_id, name: (p as any).bars.name });
+    for (const e of entries ?? []) {
+      const p: any = e.lastPerformance;
+      if (p.bar_id && p.bars?.name && !seen.has(p.bar_id)) {
+        seen.add(p.bar_id);
+        list.push({ id: p.bar_id, name: p.bars.name });
       }
     }
     return list;
-  }, [performances]);
+  }, [entries]);
 
   const filteredBars = useMemo(
     () => !barSearch.trim()
@@ -65,9 +65,9 @@ export default function ClassementScreen() {
     [bars, barSearch]
   );
 
-  const displayedPerformances = useMemo(
-    () => !barId ? (performances ?? []) : (performances ?? []).filter((p: any) => p.bar_id === barId),
-    [performances, barId]
+  const displayedEntries = useMemo(
+    () => !barId ? (entries ?? []) : (entries ?? []).filter((e: any) => e.lastPerformance.bar_id === barId),
+    [entries, barId]
   );
 
   const activeFilterCount = [gender !== null, challengeTypeId !== null, barId !== null].filter(Boolean).length;
@@ -216,7 +216,7 @@ export default function ClassementScreen() {
         <View style={styles.center}>
           <ActivityIndicator color={Colors.amber[500]} />
         </View>
-      ) : !displayedPerformances?.length ? (
+      ) : !displayedEntries?.length ? (
         <View style={styles.center}>
           <Ionicons name="trophy-outline" size={48} color={Colors.textSecondary} />
           <Text style={styles.emptyText}>Aucun Yermat ce mois-ci</Text>
@@ -233,14 +233,15 @@ export default function ClassementScreen() {
             />
           }
         >
-          {/* Podium top 3 */}
+          {/* Podium top 3 — les plus actifs du mois (nombre de Yermats publiés) */}
           <View style={styles.podium}>
             {PODIUM_ORDER.map((rankIdx, visualPos) => {
-              const p = (displayedPerformances as any[])[rankIdx];
-              if (!p) return null;
+              const e = (displayedEntries as any[])[rankIdx];
+              if (!e) return null;
+              const p = e.lastPerformance;
               return (
                 <TouchableOpacity
-                  key={p.id}
+                  key={e.userId}
                   onPress={() => router.push(`/performance/${p.id}`)}
                   style={[styles.podiumCard, { marginBottom: PODIUM_ELEVATION[visualPos] }]}
                   activeOpacity={0.85}
@@ -248,29 +249,32 @@ export default function ClassementScreen() {
                   <Text style={styles.medalEmoji}>{MEDALS[rankIdx]}</Text>
                   <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username} size={44} />
                   <Text style={styles.podiumName} numberOfLines={1}>{p.profiles?.username}</Text>
-                  <TimeBadge timeMs={p.time_ms} size="sm" />
+                  <Text style={styles.countText}>{e.count} Yermat{e.count > 1 ? 's' : ''}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
           {/* Rest of the list */}
-          {(displayedPerformances as any[]).slice(3).map((p: any, i: number) => (
-            <TouchableOpacity
-              key={p.id}
-              onPress={() => router.push(`/performance/${p.id}`)}
-              style={styles.listRow}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.rank}>#{i + 4}</Text>
-              <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username} size={36} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.listName}>{p.profiles?.username}</Text>
-                <Text style={styles.listBar} numberOfLines={1}>{p.bars?.name ?? '—'}</Text>
-              </View>
-              <TimeBadge timeMs={p.time_ms} size="sm" />
-            </TouchableOpacity>
-          ))}
+          {(displayedEntries as any[]).slice(3).map((e: any, i: number) => {
+            const p = e.lastPerformance;
+            return (
+              <TouchableOpacity
+                key={e.userId}
+                onPress={() => router.push(`/performance/${p.id}`)}
+                style={styles.listRow}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.rank}>#{i + 4}</Text>
+                <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username} size={36} />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.listName}>{p.profiles?.username}</Text>
+                  <Text style={styles.listBar} numberOfLines={1}>{p.bars?.name ?? '—'}</Text>
+                </View>
+                <Text style={styles.countText}>{e.count} Yermat{e.count > 1 ? 's' : ''}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       )}
     </View>
@@ -385,6 +389,11 @@ const styles = StyleSheet.create({
   },
   medalEmoji: { fontSize: 28 },
   podiumName: { color: Colors.text, fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  countText: {
+    backgroundColor: Colors.brand, borderRadius: 6,
+    color: Colors.white, fontWeight: '800', fontSize: 11,
+    paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden',
+  },
 
   // List
   listRow: {

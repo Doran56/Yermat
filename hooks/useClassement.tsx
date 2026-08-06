@@ -10,6 +10,14 @@ interface ClassementFilters {
   month: Date;
 }
 
+export interface ClassementEntry {
+  userId: string;
+  count: number;
+  lastPerformance: PerformanceWithDetails;
+}
+
+// Classement par participation (nombre de Yermats publiés ce mois-ci), jamais
+// par vitesse/quantité consommée — voir Guideline 5 (Legal) d'Apple.
 export function useClassement(filters: ClassementFilters) {
   return useQuery({
     queryKey: ['classement', filters.challengeTypeId, filters.gender, filters.username, filters.month.toISOString()],
@@ -29,8 +37,8 @@ export function useClassement(filters: ClassementFilters) {
         .eq('status', 'approved')
         .gte('created_at', monthStart.toISOString())
         .lte('created_at', monthEnd.toISOString())
-        .order('time_ms', { ascending: true })
-        .limit(200);
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (filters.challengeTypeId) {
         query = query.eq('challenge_type_id', filters.challengeTypeId);
@@ -54,16 +62,18 @@ export function useClassement(filters: ClassementFilters) {
         );
       }
 
-      // Deduplicate: keep best time per user
-      const bestByUser = new Map<string, PerformanceWithDetails>();
+      // Regrouper par utilisateur : nombre de participations + dernière perf (pour l'affichage)
+      const byUser = new Map<string, ClassementEntry>();
       for (const perf of results) {
-        const existing = bestByUser.get(perf.user_id);
-        if (!existing || perf.time_ms < existing.time_ms) {
-          bestByUser.set(perf.user_id, perf);
+        const existing = byUser.get(perf.user_id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          byUser.set(perf.user_id, { userId: perf.user_id, count: 1, lastPerformance: perf });
         }
       }
 
-      return Array.from(bestByUser.values()).sort((a, b) => a.time_ms - b.time_ms);
+      return Array.from(byUser.values()).sort((a, b) => b.count - a.count);
     },
     staleTime: 2 * 60 * 1000,
   });

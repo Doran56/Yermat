@@ -27,37 +27,39 @@ Réponses aux questions générales :
 
 ## Classification du contenu (questionnaire)
 
-Positionnement : app d'hydratation / bien-être — pas de contenu à risque (pas d'alcool, pas de violence, pas de contenu à caractère sexuel).
+Positionnement réel : app sociale autour de sorties en bars, avec des vidéos impliquant de
+l'alcool entre adultes. Même déclaration que côté App Store (voir `docs/app-store-listing.md`)
+— pas de double discours entre les deux stores.
 - Violence : Non
 - Contenu sexuel : Non
 - Langage grossier : Non (sauf si UGC — cocher "contenu généré par les utilisateurs non modéré" si pas de modération stricte en place)
-- Substances contrôlées (alcool/drogue/tabac) : Non
+- Substances contrôlées (alcool/drogue/tabac) : **Oui** (alcool, contexte social entre adultes)
 - Interactions utilisateur : Oui (partage de contenu, commentaires) → cocher "Partage de position" si carte publique, "Contenu généré par les utilisateurs"
 
-⚠️ Vérifier s'il y a une modération des vidéos avant publication (répond à "Contenu utilisateur non filtré ?").
+⚠️ Vérifier s'il y a une modération des vidéos avant publication (répond à "Contenu utilisateur non filtré ?"). Modération UGC déjà en place (signalement/blocage, panel admin de certification) — décrire cette modération dans le questionnaire.
 
 ## Cible et contenu (Target audience)
-- Public cible suggéré : 13+ ou 16+ selon la politique interne (plus l'app n'est plus 18+ liée à l'alcool, un ciblage plus large est possible) — à confirmer selon la stratégie produit.
-- Si des mineurs peuvent utiliser l'app : compléter la déclaration "Familles" si applicable (probablement non nécessaire ici).
+- Public cible : **18 ans et plus** — cohérent avec la vérification d'âge réelle à l'inscription (date de naissance demandée, accès refusé sous 18 ans) et avec le rating 17+ visé côté App Store.
+- Aucune déclaration "Familles" : l'app n'est pas destinée aux mineurs et bloque leur inscription.
 
 ## Fiche store (store listing)
 
 **Titre** : Yermat
 
 **Description courte** (80 car. max) :
-> Suis ton hydratation, partage tes sessions et défie tes amis en vidéo.
+> Le Strava des bars : filme tes soirées entre potes et partage-les. 18+.
 
-**Description longue** (brouillon, à valider/adapter) :
-> Yermat t'aide à rester hydraté au quotidien, de façon fun et sociale.
+**Description longue** (brouillon, à valider/adapter — identique dans l'esprit à la fiche App Store) :
+> Yermat, c'est le Strava des bars : l'app qui transforme tes soirées entre potes en vidéos et en classements.
 >
-> 💧 Enregistre tes sessions d'hydratation en vidéo et partage-les avec ta communauté
-> 🏆 Grimpe dans le classement et suis tes progrès
-> 🗺️ Retrouve les points d'eau autour de toi sur la carte
-> 👥 Suis tes amis, réagis à leurs sessions ("Gouttes") et reste motivé ensemble
+> 🎥 Filme tes moments en vidéo directement dans l'app et partage-les avec ta communauté
+> 🏆 Grimpe dans le classement des plus actifs et suis tes progrès
+> 🗺️ Retrouve les bars autour de toi sur la carte
+> 👥 Suis tes amis, réagis à leurs vidéos ("Gouttes") et reste motivé ensemble
 >
-> Rejoins Yermat et fais de l'hydratation un jeu !
+> Yermat est réservée aux personnes de 18 ans et plus. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.
 
-**Catégorie suggérée** : Santé et remise en forme (Health & Fitness), ou Social selon le positionnement dominant.
+**Catégorie suggérée** : Social.
 
 **Assets manquants à préparer** :
 - Icône 512x512 (dérivable de `assets/icon.png`, à vérifier resolution)

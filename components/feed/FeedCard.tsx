@@ -12,7 +12,6 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Avatar } from '@/components/ui/Avatar';
-import { TimeBadge } from '@/components/ui/TimeBadge';
 import { Badge } from '@/components/ui/Badge';
 import { Colors } from '@/constants/colors';
 import { PerformanceWithDetails } from '@/types/database';
@@ -116,14 +115,13 @@ export function FeedCard({ performance, isVisible, shouldLoad, cardHeight, onAut
     const deepLink = `yermat://performance/${performance.id}`;
     const who = profile?.username ?? 'quelqu\'un';
     const what = challenge ? ` - ${challenge.name}` : '';
-    const time = performance.time_ms > 0 ? ` en ${(performance.time_ms / 1000).toFixed(2)}s` : '';
-    const text = `Regarde le Yermat de ${who}${what}${time} sur Yermat 💧`;
+    const text = `Regarde le Yermat de ${who}${what} sur Yermat 💧`;
     await Share.share(
       Platform.OS === 'ios'
         ? { message: text, url: deepLink }
         : { message: `${text}\n${deepLink}` }
     );
-  }, [performance.id, profile, challenge, performance.time_ms]);
+  }, [performance.id, profile, challenge]);
 
   const handleYermat = () => {
     if (!user) { onAuthRequired(); return; }
@@ -259,7 +257,6 @@ export function FeedCard({ performance, isVisible, shouldLoad, cardHeight, onAut
         {/* Badges row */}
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {challenge && <Badge label={challenge.name} variant="amber" />}
-          {performance.time_ms > 0 && <TimeBadge timeMs={performance.time_ms} size="sm" />}
           <Badge label={status.label} variant="muted" />
           <Text style={styles.date}>{formatRelativeDate(performance.created_at)}</Text>
         </View>

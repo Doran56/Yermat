@@ -4,6 +4,7 @@ export interface Profile {
   username: string;
   avatar_url: string | null;
   age_verified: boolean;
+  birth_date: string | null;
   xp: number;
   created_at: string;
   updated_at: string;

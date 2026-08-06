@@ -2,9 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 
 // ============================================================
 // notify-engagement — campagnes push PROACTIVES
-//   campaign = 'winback' | 'weekend' | 'ranking'
+//   campaign = 'winback' | 'weekend'
 // Déclenchée par pg_cron via trigger_engagement_campaign().
 // Réutilise l'edge function send-push pour l'envoi batch + cleanup tokens.
+//
+// La campagne 'ranking' (urgence de classement par vitesse de consommation)
+// a été retirée : elle poussait les utilisateurs à boire plus vite/plus pour
+// défendre une place dans un classement, ce qui contrevient à la Guideline 5
+// d'Apple (encouragement à une consommation excessive/dangereuse).
 // ============================================================
 
 const corsHeaders = {
@@ -16,16 +21,12 @@ const corsHeaders = {
 const PROACTIVE_TYPES = [
   "winback_friends",
   "weekend_nudge",
-  "ranking_urgency",
-  "ranking_climbable",
 ] as const;
 type ProactiveType = (typeof PROACTIVE_TYPES)[number];
 
 const PUSH_TITLES: Record<ProactiveType, string> = {
   winback_friends: "👀 Ça chauffe sans toi",
   weekend_nudge: "🔥 Le week-end démarre",
-  ranking_urgency: "⏳ Le classement va fermer",
-  ranking_climbable: "⚔️ Le podium est jouable",
 };
 
 // Garde-fous (codés en dur, pas d'UI — décision produit)
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
 
   try {
     const { campaign } = (await req.json().catch(() => ({}))) as { campaign?: string };
-    if (!campaign || !["winback", "weekend", "ranking"].includes(campaign)) {
+    if (!campaign || !["winback", "weekend"].includes(campaign)) {
       return new Response(JSON.stringify({ error: "Invalid campaign" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -83,7 +84,6 @@ Deno.serve(async (req) => {
     let candidates: Candidate[] = [];
     if (campaign === "winback") candidates = await buildWinback(supabase);
     else if (campaign === "weekend") candidates = await buildWeekend(supabase);
-    else if (campaign === "ranking") candidates = await buildRanking(supabase);
 
     if (candidates.length === 0) {
       return new Response(JSON.stringify({ campaign, eligible: 0, pushed: 0 }), {
@@ -335,51 +335,3 @@ async function buildWeekend(supabase: SupabaseClient): Promise<Candidate[]> {
   return candidates;
 }
 
-async function buildRanking(supabase: SupabaseClient): Promise<Candidate[]> {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const daysUntilEnd = Math.ceil((nextMonth.getTime() - now.getTime()) / DAY_MS);
-
-  const { data: perfs } = await supabase
-    .from("performances")
-    .select("user_id, time_ms")
-    .eq("status", "approved")
-    .eq("visibility", "public")
-    .gte("created_at", monthStart);
-  if (!perfs || perfs.length === 0) return [];
-
-  const best = new Map<string, number>();
-  for (const p of perfs) {
-    const cur = best.get(p.user_id);
-    if (cur === undefined || p.time_ms < cur) best.set(p.user_id, p.time_ms);
-  }
-  const ranking = [...best.entries()]
-    .map(([userId, time_ms]) => ({ userId, time_ms }))
-    .sort((a, b) => a.time_ms - b.time_ms);
-  if (ranking.length === 0) return [];
-
-  const top1 = ranking[0].time_ms;
-  const CLOSE_GAP_MS = 1500;
-  const candidates: Candidate[] = [];
-
-  for (let i = 0; i < ranking.length; i++) {
-    const rank = i + 1;
-    const { userId, time_ms } = ranking[i];
-
-    if (daysUntilEnd <= 2 && rank <= 5) {
-      const body =
-        rank === 1
-          ? "Plus que 48h — défends ta 1re place du mois 👑"
-          : `Plus que 48h — t'es ${rank}e au classement, le podium est jouable`;
-      candidates.push({ userId, type: "ranking_urgency", body });
-    } else if ((rank === 2 || rank === 3) && time_ms - top1 <= CLOSE_GAP_MS) {
-      candidates.push({
-        userId,
-        type: "ranking_climbable",
-        body: `Tu es ${rank}e — il s'en faut de peu pour passer 1er`,
-      });
-    }
-  }
-  return candidates;
-}
