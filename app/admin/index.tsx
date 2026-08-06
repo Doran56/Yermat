@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useIsAdmin, useAllPerformances, useModeratePerformance } from '@/hooks/useAdmin';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
+import { TimeTag } from '@/components/ui/TimeTag';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { PerformanceThumb } from '@/components/profile/PerformanceThumb';
 import { VideoReviewModal } from '@/components/admin/VideoReviewModal';
@@ -127,6 +128,7 @@ export default function AdminScreen() {
               <View style={styles.chipsRow}>
                 {p.challenge_types && <Badge label={p.challenge_types.name} variant="amber" />}
                 <Text style={styles.date}>{formatRelativeDate(p.created_at)}</Text>
+                <TimeTag timeMs={p.time_ms} style={{ color: Colors.zinc[400] }} />
               </View>
             </View>
           </View>

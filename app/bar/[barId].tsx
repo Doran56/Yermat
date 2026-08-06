@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar';
+import { TimeTag } from '@/components/ui/TimeTag';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
@@ -141,6 +142,7 @@ export default function BarDetailScreen() {
                     <Text style={styles.perfUser}>{p.profiles?.username ?? 'Anonyme'}</Text>
                     <Text style={styles.perfDate}>{formatRelativeDate(p.created_at)}</Text>
                   </View>
+                  <TimeTag timeMs={p.time_ms} />
                 </TouchableOpacity>
               ))}
               <TouchableOpacity

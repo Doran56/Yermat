@@ -2,10 +2,15 @@
 
 > Suis les sections dans l'ordre de l'interface App Store Connect (ASC).
 > Positionnement : « le Strava des bars », assumé comme app 18+ liée à l'alcool.
-> Depuis la mise en conformité Guideline 5 (retrait du chrono, du classement/médailles par
-> vitesse, de la stat de débit, + vérification d'âge réelle), le classement restant est basé
-> sur la participation (nombre de vidéos publiées), jamais sur la vitesse ou la quantité
-> consommée — c'est un fait produit, pas juste un choix de wording.
+>
+> ⚠️ État réel au 6 août 2026 (à lire avant de resoumettre) : le chrono live pendant
+> l'enregistrement, le classement/médailles par vitesse et les notifications "défends ta
+> place" ont été retirés. En revanche, une décision produit ultérieure a réintroduit
+> l'affichage discret du temps sur les cartes/fiches et un tri par temps dans l'onglet
+> Recherche (ex-Classement) — voir migration `20260806130000_restore_time_display_decision.sql`.
+> Ne PAS affirmer dans les notes de resoumission que l'app ne contient plus aucune référence
+> à la vitesse : ce serait faux et pire qu'un simple re-rejet si Apple le constate. Les notes
+> ci-dessous (section 5h) ont été mises à jour en conséquence.
 > Champs `<À REMPLIR>` = infos que toi seul as.
 
 ---
@@ -135,26 +140,30 @@ Accès à la boîte mail — identifiant : <REMPLIR> / mot de passe : <REMPLIR>
 Réponse au rejet Guideline 5 (Legal) — « encourages users to participate in excessive
 drinking » :
 
-Nous avons identifié que le mécanisme mis en cause était la mise en avant de la vitesse
-de consommation d'alcool (chronomètre affiché pendant l'enregistrement, classement mensuel
-trié par temps le plus rapide, médailles par vitesse, statistique de « débit » en L/s, et
-notifications poussant à défendre une place dans ce classement). Nous avons retiré
-l'intégralité de ces éléments :
+Nous avons retiré les mécaniques de compétition construites autour de la vitesse de
+consommation :
 - Le chronomètre n'est plus affiché pendant l'enregistrement d'une vidéo.
-- Le classement (onglet « Classement ») est désormais basé sur le nombre de vidéos publiées
-  (participation), jamais sur la vitesse ou la quantité d'alcool consommée.
-- Les médailles mensuelles récompensent la participation, plus la vitesse.
-- La statistique de débit (L/s) a été supprimée du profil.
+- Il n'y a plus de podium, de médailles par vitesse, ni de classement mensuel mis en scène
+  comme une compétition à défendre.
+- La statistique de « débit » en L/s a été supprimée du profil.
 - La campagne de notifications push incitant à « défendre sa place » au classement a été
   retirée.
+- Les médailles mensuelles récompensent désormais la participation (nombre de vidéos
+  publiées), pas la vitesse.
 - Une vérification d'âge réelle a été ajoutée : une date de naissance est demandée à
   l'inscription et l'accès est refusé sous 18 ans.
 - Un message de modération explicite (« L'abus d'alcool est dangereux pour la santé, à
   consommer avec modération. Réservé aux 18 ans et plus. ») est affiché à l'inscription et
   avant chaque publication.
 
+Point à surveiller si le rejet est reconduit : la durée de chaque vidéo reste visible en
+texte discret (comme la date ou le lieu) sur les fiches, et l'onglet « Recherche » propose
+un tri par ce critère parmi d'autres (date, alphabétique). Si Apple maintient le rejet en
+pointant spécifiquement ce point, la seule option restante est de retirer aussi l'affichage
+et le tri par temps — <À DÉCIDER selon le retour d'Apple>.
+
 Note : Yermat est une app sociale de partage de vidéos entre amis dans des bars, réservée
-aux 18+, sans aucune mécanique de compétition de vitesse/quantité de consommation.
+aux 18+.
 ```
 - **Contact Information** : `<Prénom> <Nom>`, `<téléphone>`, `<email>`
 

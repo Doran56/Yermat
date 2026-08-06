@@ -14,7 +14,7 @@ function TabIcon({ name, focused, isFeedActive }: { name: string; focused: boole
 
   const iconMap: Record<string, { active: IoniconName; inactive: IoniconName }> = {
     index:      { active: 'home',    inactive: 'home-outline' },
-    classement: { active: 'trophy',  inactive: 'trophy-outline' },
+    classement: { active: 'search',  inactive: 'search-outline' },
     map:        { active: 'map',     inactive: 'map-outline' },
     profile:    { active: 'person',  inactive: 'person-outline' },
   };
@@ -41,7 +41,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   const tabs = [
     { name: 'index', label: 'Feed' },
-    { name: 'classement', label: 'Top' },
+    { name: 'classement', label: 'Recherche' },
     null,
     { name: 'map', label: 'Carte' },
     { name: 'profile', label: 'Profil' },

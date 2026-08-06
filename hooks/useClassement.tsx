@@ -3,28 +3,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { PerformanceWithDetails } from '@/types/database';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
-interface ClassementFilters {
+export type SearchSort = 'time_asc' | 'date_desc' | 'username_asc' | 'barname_asc';
+
+interface SearchFilters {
   challengeTypeId: string | null;
-  gender: string | null;
+  barId: string | null;
   username: string | null;
-  month: Date;
+  gender: string | null;
+  month: Date | null;
+  sort: SearchSort;
 }
 
-export interface ClassementEntry {
-  userId: string;
-  count: number;
-  lastPerformance: PerformanceWithDetails;
-}
-
-// Classement par participation (nombre de Yermats publiés ce mois-ci), jamais
-// par vitesse/quantité consommée — voir Guideline 5 (Legal) d'Apple.
-export function useClassement(filters: ClassementFilters) {
+// Recherche de Yermats avec filtres (volume, bar, utilisateur, période) et tri
+// libre (temps, date, alphabétique) — écran de recherche/parcours, pas un
+// classement compétitif : aucune notification ni récompense n'y est attachée.
+export function useClassement(filters: SearchFilters) {
   return useQuery({
-    queryKey: ['classement', filters.challengeTypeId, filters.gender, filters.username, filters.month.toISOString()],
+    queryKey: [
+      'yermat-search',
+      filters.challengeTypeId, filters.barId, filters.username, filters.gender,
+      filters.month?.toISOString() ?? 'all', filters.sort,
+    ],
     queryFn: async () => {
-      const monthStart = startOfMonth(filters.month);
-      const monthEnd = endOfMonth(filters.month);
-
       let query = supabase
         .from('performances')
         .select(`
@@ -35,14 +35,19 @@ export function useClassement(filters: ClassementFilters) {
         `)
         .eq('visibility', 'public')
         .eq('status', 'approved')
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', monthEnd.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(500);
+        .limit(300);
 
-      if (filters.challengeTypeId) {
-        query = query.eq('challenge_type_id', filters.challengeTypeId);
+      if (filters.month) {
+        query = query
+          .gte('created_at', startOfMonth(filters.month).toISOString())
+          .lte('created_at', endOfMonth(filters.month).toISOString());
       }
+      if (filters.challengeTypeId) query = query.eq('challenge_type_id', filters.challengeTypeId);
+      if (filters.barId) query = query.eq('bar_id', filters.barId);
+
+      query = filters.sort === 'time_asc'
+        ? query.order('time_ms', { ascending: true })
+        : query.order('created_at', { ascending: false });
 
       const { data, error } = await query;
       if (error) throw error;
@@ -51,29 +56,26 @@ export function useClassement(filters: ClassementFilters) {
 
       if (filters.username) {
         const search = filters.username.toLowerCase();
-        results = results.filter(p =>
-          p.profiles?.username?.toLowerCase().includes(search)
-        );
+        results = results.filter(p => p.profiles?.username?.toLowerCase().includes(search));
       }
 
       if (filters.gender) {
-        results = results.filter(p =>
-          (p.profiles as any)?.gender === filters.gender
-        );
+        results = results.filter(p => (p.profiles as any)?.gender === filters.gender);
       }
 
-      // Regrouper par utilisateur : nombre de participations + dernière perf (pour l'affichage)
-      const byUser = new Map<string, ClassementEntry>();
-      for (const perf of results) {
-        const existing = byUser.get(perf.user_id);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          byUser.set(perf.user_id, { userId: perf.user_id, count: 1, lastPerformance: perf });
-        }
+      switch (filters.sort) {
+        case 'username_asc':
+          results = [...results].sort((a, b) =>
+            (a.profiles?.username ?? '').localeCompare(b.profiles?.username ?? ''));
+          break;
+        case 'barname_asc':
+          results = [...results].sort((a, b) =>
+            ((a as any).bars?.name ?? '').localeCompare((b as any).bars?.name ?? ''));
+          break;
+        // 'time_asc' et 'date_desc' sont déjà triés côté serveur.
       }
 
-      return Array.from(byUser.values()).sort((a, b) => b.count - a.count);
+      return results;
     },
     staleTime: 2 * 60 * 1000,
   });

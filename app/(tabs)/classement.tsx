@@ -8,10 +8,12 @@ import { useRouter } from 'expo-router';
 import { startOfMonth, subMonths, addMonths, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Ionicons } from '@expo/vector-icons';
-import { useClassement } from '@/hooks/useClassement';
+import { useClassement, SearchSort } from '@/hooks/useClassement';
 import { useChallengeTypes } from '@/hooks/useChallengeTypes';
 import { Avatar } from '@/components/ui/Avatar';
+import { TimeTag } from '@/components/ui/TimeTag';
 import { Colors } from '@/constants/colors';
+import { formatRelativeDate } from '@/lib/utils';
 
 const GENDERS = [
   { key: null, label: 'Mixte' },
@@ -19,44 +21,50 @@ const GENDERS = [
   { key: 'female', label: 'Femmes' },
 ];
 
-const MEDALS = ['🥇', '🥈', '🥉'];
-const PODIUM_ORDER = [1, 0, 2]; // visual left=2nd, center=1st, right=3rd
-const PODIUM_ELEVATION = [12, 28, 0]; // marginBottom per visual position
+const SORTS: { key: SearchSort; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { key: 'date_desc', label: 'Plus récents', icon: 'time-outline' },
+  { key: 'time_asc', label: 'Temps', icon: 'stopwatch-outline' },
+  { key: 'username_asc', label: 'Utilisateur A-Z', icon: 'person-outline' },
+  { key: 'barname_asc', label: 'Bar A-Z', icon: 'location-outline' },
+];
 
 export default function ClassementScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const [month, setMonth] = useState<Date | null>(() => startOfMonth(new Date()));
   const [gender, setGender] = useState<string | null>(null);
   const [challengeTypeId, setChallengeTypeId] = useState<string | null>(null);
   const [barId, setBarId] = useState<string | null>(null);
   const [barSearch, setBarSearch] = useState('');
+  const [username, setUsername] = useState('');
+  const [sort, setSort] = useState<SearchSort>('date_desc');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: entries, isLoading, refetch: refetchClassement } = useClassement({ challengeTypeId, gender, username: null, month });
+  const { data: performances, isLoading, refetch: refetchSearch } = useClassement({
+    challengeTypeId, barId: null, gender, username: username.trim() || null, month, sort,
+  });
   const { data: challengeTypes, refetch: refetchChallengeTypes } = useChallengeTypes();
 
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchClassement(), refetchChallengeTypes()]);
+    await Promise.all([refetchSearch(), refetchChallengeTypes()]);
     setRefreshing(false);
-  }, [refetchClassement, refetchChallengeTypes]);
+  }, [refetchSearch, refetchChallengeTypes]);
 
-  const canGoNext = addMonths(month, 1) <= startOfMonth(new Date());
+  const canGoNext = !!month && addMonths(month, 1) <= startOfMonth(new Date());
 
   const bars = useMemo(() => {
     const seen = new Set<string>();
     const list: { id: string; name: string }[] = [];
-    for (const e of entries ?? []) {
-      const p: any = e.lastPerformance;
-      if (p.bar_id && p.bars?.name && !seen.has(p.bar_id)) {
-        seen.add(p.bar_id);
-        list.push({ id: p.bar_id, name: p.bars.name });
+    for (const p of performances ?? []) {
+      if ((p as any).bar_id && (p as any).bars?.name && !seen.has((p as any).bar_id)) {
+        seen.add((p as any).bar_id);
+        list.push({ id: (p as any).bar_id, name: (p as any).bars.name });
       }
     }
     return list;
-  }, [entries]);
+  }, [performances]);
 
   const filteredBars = useMemo(
     () => !barSearch.trim()
@@ -65,19 +73,19 @@ export default function ClassementScreen() {
     [bars, barSearch]
   );
 
-  const displayedEntries = useMemo(
-    () => !barId ? (entries ?? []) : (entries ?? []).filter((e: any) => e.lastPerformance.bar_id === barId),
-    [entries, barId]
+  const displayedPerformances = useMemo(
+    () => !barId ? (performances ?? []) : (performances ?? []).filter((p: any) => p.bar_id === barId),
+    [performances, barId]
   );
 
-  const activeFilterCount = [gender !== null, challengeTypeId !== null, barId !== null].filter(Boolean).length;
+  const activeFilterCount = [gender !== null, challengeTypeId !== null, barId !== null, !!username.trim()].filter(Boolean).length;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Top bar */}
       <View style={styles.topBar}>
         <View style={styles.topLeft}>
-          <Text style={styles.title}>Classement</Text>
+          <Text style={styles.title}>Recherche</Text>
         </View>
         <TouchableOpacity
           onPress={() => setShowFilters(s => !s)}
@@ -97,6 +105,25 @@ export default function ClassementScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Tri — toujours visible */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.sortRow}
+      >
+        {SORTS.map(s => (
+          <TouchableOpacity
+            key={s.key}
+            onPress={() => setSort(s.key)}
+            style={[styles.sortChip, sort === s.key && styles.sortChipActive]}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={s.icon} size={13} color={sort === s.key ? Colors.white : Colors.textSecondary} />
+            <Text style={[styles.sortChipText, sort === s.key && styles.sortChipTextActive]}>{s.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/* Filter panel */}
       {showFilters && (
         <View style={styles.filterPanel}>
@@ -107,20 +134,40 @@ export default function ClassementScreen() {
           >
             {/* Mois */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionLabel}>Mois</Text>
+              <Text style={styles.filterSectionLabel}>Période</Text>
               <View style={styles.monthRow}>
-                <TouchableOpacity onPress={() => setMonth(m => subMonths(m, 1))} style={styles.monthBtn}>
+                <TouchableOpacity
+                  onPress={() => setMonth(m => subMonths(m ?? new Date(), 1))}
+                  style={styles.monthBtn}
+                >
                   <Ionicons name="chevron-back" size={18} color={Colors.textSecondary} />
                 </TouchableOpacity>
-                <Text style={styles.monthLabel}>{format(month, 'MMMM yyyy', { locale: fr })}</Text>
+                <TouchableOpacity onPress={() => setMonth(m => m ? null : startOfMonth(new Date()))} style={{ flex: 1 }}>
+                  <Text style={styles.monthLabel}>
+                    {month ? format(month, 'MMMM yyyy', { locale: fr }) : 'Toutes les périodes'}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => canGoNext && setMonth(m => addMonths(m, 1))}
+                  onPress={() => canGoNext && setMonth(m => addMonths(m ?? new Date(), 1))}
                   style={[styles.monthBtn, !canGoNext && { opacity: 0.3 }]}
                   disabled={!canGoNext}
                 >
                   <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Utilisateur */}
+            <View style={[styles.filterSection, styles.filterSectionBorder]}>
+              <Text style={styles.filterSectionLabel}>Utilisateur</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Rechercher un utilisateur…"
+                placeholderTextColor={Colors.textSecondary}
+                value={username}
+                onChangeText={setUsername}
+                clearButtonMode="while-editing"
+              />
             </View>
 
             {/* Genre */}
@@ -142,9 +189,9 @@ export default function ClassementScreen() {
               </View>
             </View>
 
-            {/* Challenge */}
+            {/* Volume */}
             <View style={[styles.filterSection, styles.filterSectionBorder]}>
-              <Text style={styles.filterSectionLabel}>Challenge</Text>
+              <Text style={styles.filterSectionLabel}>Volume</Text>
               <View style={styles.pickerList}>
                 <TouchableOpacity
                   onPress={() => setChallengeTypeId(null)}
@@ -173,10 +220,10 @@ export default function ClassementScreen() {
             {/* Bar */}
             {bars.length > 0 && (
               <View style={[styles.filterSection, styles.filterSectionBorder]}>
-                <Text style={styles.filterSectionLabel}>Point d'eau</Text>
+                <Text style={styles.filterSectionLabel}>Bar</Text>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Rechercher un point d'eau…"
+                  placeholder="Rechercher un bar…"
                   placeholderTextColor={Colors.textSecondary}
                   value={barSearch}
                   onChangeText={setBarSearch}
@@ -188,7 +235,7 @@ export default function ClassementScreen() {
                     style={[styles.pickerOption, barId === null && styles.pickerOptionActive]}
                   >
                     <Text style={[styles.pickerOptionText, barId === null && styles.pickerOptionTextActive]}>
-                      Tous les points d'eau
+                      Tous les bars
                     </Text>
                     {barId === null && <Ionicons name="checkmark" size={14} color={Colors.white} />}
                   </TouchableOpacity>
@@ -216,10 +263,10 @@ export default function ClassementScreen() {
         <View style={styles.center}>
           <ActivityIndicator color={Colors.amber[500]} />
         </View>
-      ) : !displayedEntries?.length ? (
+      ) : !displayedPerformances?.length ? (
         <View style={styles.center}>
-          <Ionicons name="trophy-outline" size={48} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>Aucun Yermat ce mois-ci</Text>
+          <Ionicons name="search-outline" size={48} color={Colors.textSecondary} />
+          <Text style={styles.emptyText}>Aucun Yermat trouvé</Text>
         </View>
       ) : (
         <ScrollView
@@ -233,48 +280,23 @@ export default function ClassementScreen() {
             />
           }
         >
-          {/* Podium top 3 — les plus actifs du mois (nombre de Yermats publiés) */}
-          <View style={styles.podium}>
-            {PODIUM_ORDER.map((rankIdx, visualPos) => {
-              const e = (displayedEntries as any[])[rankIdx];
-              if (!e) return null;
-              const p = e.lastPerformance;
-              return (
-                <TouchableOpacity
-                  key={e.userId}
-                  onPress={() => router.push(`/performance/${p.id}`)}
-                  style={[styles.podiumCard, { marginBottom: PODIUM_ELEVATION[visualPos] }]}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.medalEmoji}>{MEDALS[rankIdx]}</Text>
-                  <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username} size={44} />
-                  <Text style={styles.podiumName} numberOfLines={1}>{p.profiles?.username}</Text>
-                  <Text style={styles.countText}>{e.count} Yermat{e.count > 1 ? 's' : ''}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Rest of the list */}
-          {(displayedEntries as any[]).slice(3).map((e: any, i: number) => {
-            const p = e.lastPerformance;
-            return (
-              <TouchableOpacity
-                key={e.userId}
-                onPress={() => router.push(`/performance/${p.id}`)}
-                style={styles.listRow}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.rank}>#{i + 4}</Text>
-                <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username} size={36} />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.listName}>{p.profiles?.username}</Text>
-                  <Text style={styles.listBar} numberOfLines={1}>{p.bars?.name ?? '—'}</Text>
-                </View>
-                <Text style={styles.countText}>{e.count} Yermat{e.count > 1 ? 's' : ''}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {(displayedPerformances as any[]).map((p: any) => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => router.push(`/performance/${p.id}`)}
+              style={styles.listRow}
+              activeOpacity={0.8}
+            >
+              <Avatar uri={p.profiles?.avatar_url} name={p.profiles?.username} size={36} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.listName}>{p.profiles?.username}</Text>
+                <Text style={styles.listBar} numberOfLines={1}>
+                  {p.bars?.name ?? '—'} · {p.challenge_types?.name ?? ''} · {formatRelativeDate(p.created_at)}
+                </Text>
+              </View>
+              <TimeTag timeMs={p.time_ms} />
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       )}
     </View>
@@ -311,6 +333,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   filterBadgeText: { color: Colors.white, fontSize: 9, fontWeight: '800' },
+
+  // Sort row
+  sortRow: { paddingHorizontal: 12, gap: 8, paddingBottom: 10 },
+  sortChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+    borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgElevated,
+  },
+  sortChipActive: { backgroundColor: Colors.amber[500], borderColor: Colors.amber[500] },
+  sortChipText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  sortChipTextActive: { color: Colors.white },
 
   // Filter panel
   filterPanel: {
@@ -367,41 +400,12 @@ const styles = StyleSheet.create({
   pickerOptionText: { color: Colors.text, fontSize: 14 },
   pickerOptionTextActive: { color: Colors.white, fontWeight: '700' },
 
-  // Podium
-  podium: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  podiumCard: {
-    flex: 1,
-    backgroundColor: Colors.bgElevated,
-    borderRadius: 16,
-    alignItems: 'center',
-    padding: 12,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  medalEmoji: { fontSize: 28 },
-  podiumName: { color: Colors.text, fontSize: 11, fontWeight: '600', textAlign: 'center' },
-  countText: {
-    backgroundColor: Colors.brand, borderRadius: 6,
-    color: Colors.white, fontWeight: '800', fontSize: 11,
-    paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden',
-  },
-
   // List
   listRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  rank: { color: Colors.textSecondary, fontSize: 13, width: 32, fontWeight: '600' },
   listName: { color: Colors.text, fontSize: 14, fontWeight: '600' },
   listBar: { color: Colors.textSecondary, fontSize: 12, marginTop: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },

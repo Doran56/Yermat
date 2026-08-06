@@ -15,6 +15,7 @@ import { useComments } from '@/hooks/useComments';
 import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
+import { TimeTag } from '@/components/ui/TimeTag';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ReportActionSheet } from '@/components/moderation/ReportActionSheet';
@@ -164,6 +165,7 @@ export default function PerformanceDetailScreen() {
             <View style={styles.badgesRow}>
               {challenge && <Badge label={challenge.name} variant="amber" />}
               <StatusBadge status={performance.status as any} />
+              <TimeTag timeMs={performance.time_ms} />
             </View>
 
             {/* Visibility picker — owner only, juste sous les badges */}

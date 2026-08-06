@@ -12,6 +12,7 @@ import { useComments } from '@/hooks/useComments';
 import { useFollows } from '@/hooks/useFollows';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
+import { TimeTag } from '@/components/ui/TimeTag';
 import { Colors } from '@/constants/colors';
 import { formatRelativeDate } from '@/lib/utils';
 import { PerformanceWithDetails } from '@/types/database';
@@ -98,6 +99,7 @@ export function PerformanceSheet({ performance }: Props) {
         <View style={styles.badgesRow}>
           {challenge && <Badge label={challenge.name} variant="amber" />}
           <Badge label={statusCfg.label} variant={statusCfg.variant} />
+          <TimeTag timeMs={performance.time_ms} />
         </View>
 
         {/* Yermat button */}

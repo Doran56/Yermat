@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
+import { TimeTag } from '@/components/ui/TimeTag';
 import { Colors } from '@/constants/colors';
 import { PerformanceWithDetails } from '@/types/database';
 import { formatRelativeDate } from '@/lib/utils';
@@ -259,6 +260,7 @@ export function FeedCard({ performance, isVisible, shouldLoad, cardHeight, onAut
           {challenge && <Badge label={challenge.name} variant="amber" />}
           <Badge label={status.label} variant="muted" />
           <Text style={styles.date}>{formatRelativeDate(performance.created_at)}</Text>
+          <TimeTag timeMs={performance.time_ms} style={{ color: Colors.zinc[400] }} />
         </View>
       </View>
     </TouchableOpacity>
